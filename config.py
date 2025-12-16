@@ -18,8 +18,9 @@ class GameConfig:
 
     # Item sourcing
     # Which dataset to use for generating items: default assets JSON, generated
-    # JSONL set, or a combination of both
-    item_source: str = "default"
+    # JSONL set, or a combination of both. Default to the generated JSONL set so
+    # item images and metadata from data/items_100.jsonl are available in-game.
+    item_source: str = "generated"
 
     # Show rules
     items_per_team: int = 3          # team purchases
