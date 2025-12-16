@@ -10,7 +10,7 @@ def _format_time(seconds: float) -> str:
         return f"{minutes:d}:{secs:02d}"
     return f"{secs:d}s"
 
-def render_hud(surface, cfg, episode, phase, time_left=None):
+def render_hud(surface, cfg, episode, phase, time_left=None, speed: float = 1.0):
     font = pygame.font.SysFont(None, 22)
     small = pygame.font.SysFont(None, 18)
     x0 = cfg.window_w - cfg.hud_w
@@ -22,6 +22,7 @@ def render_hud(surface, cfg, episode, phase, time_left=None):
     draw_text(surface, f"Phase: {phase}", x, y, font); y += 26
     if time_left is not None and phase == "MARKET":
         draw_text(surface, f"Time left: {_format_time(time_left)}", x, y, font, MUTED); y += 26
+    draw_text(surface, f"Speed: {speed:.1f}x (press F)", x, y, small, MUTED); y += 22
 
     y += 8
     for team in episode.teams:

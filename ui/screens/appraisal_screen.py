@@ -25,4 +25,11 @@ class AppraisalScreen(Screen):
                 draw_text(surface, f"Paid ${it.shop_price:.0f}  |  Appraised ${it.appraised_value:.0f}", 50, y, self.small, MUTED); y += 18
             y += 12
 
-        render_hud(surface, self.cfg, self.episode, "APPRAISAL", time_left=None)
+        render_hud(
+            surface,
+            self.cfg,
+            self.episode,
+            "APPRAISAL",
+            time_left=None,
+            speed=getattr(self.episode, "time_scale", 1.0),
+        )

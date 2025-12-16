@@ -17,6 +17,7 @@ class Episode:
     play_rect: tuple[int,int,int,int]
     items_per_team: int
     starting_budget: float
+    time_scale: float = 1.0
 
     def setup(self):
         self.rng = RNG(self.seed)
@@ -94,21 +95,79 @@ class Episode:
         team.y += dy / dist * step
 
     def finish_market_expert_leftover_purchase(self):
-        # Expert takes leftover money and buys 1 item from remaining inventory, then team budget becomes 0.
-        self.expert_purchase_events = []  # for UI overlay: (team, item or None, leftover_before)
+        """Queue expert leftover purchase proposals.
+
+        Each expert proposes an item based on the team's leftover budget. The
+        proposal must later be accepted or declined by the player/UI.
+        """
+        self.expert_purchase_events = []  # list of dicts: team, item, leftover_before, decision
         for team in self.teams:
             leftover = team.budget_left
             pick = team.expert.choose_leftover_purchase(self.market, leftover, self.rng)
-            if pick:
-                self.market.remove_item(pick)
-                pick.is_expert_pick = True
-                team.items_bought.append(pick)
-                team.budget_left = round(team.budget_left - pick.shop_price, 2)
-                self.expert_purchase_events.append((team, pick, leftover))
-            else:
-                self.expert_purchase_events.append((team, None, leftover))
-            # Expert takes the remainder regardless
+            decision = "no_pick" if pick is None else None
+            self.expert_purchase_events.append({
+                "team": team,
+                "item": pick,
+                "leftover_before": leftover,
+                "decision": decision,
+            })
+
+    def resolve_expert_purchase(self, idx: int, accept: bool):
+        """Apply a decision for a proposed expert purchase."""
+        event = self.expert_purchase_events[idx]
+        if event["decision"] is not None:
+            return
+
+        team = event["team"]
+        item = event["item"]
+        if not item:
+            event["decision"] = "no_pick"
+            return
+
+        if accept:
+            self.market.remove_item(item)
+            item.is_expert_pick = True
+            team.items_bought.append(item)
             team.budget_left = 0.0
+            team.last_action = f"Expert bought: {item.name}"
+            event["decision"] = "accepted"
+        else:
+            team.last_action = "Declined expert pick"
+            event["decision"] = "declined"
+
+    def auto_decide_expert_purchase(self, idx: int):
+        """Let the team choose whether to follow the expert's proposal."""
+        event = self.expert_purchase_events[idx]
+        if event["decision"] is not None:
+            return
+
+        accept = self._should_accept_expert_pick(event)
+        self.resolve_expert_purchase(idx, accept)
+        return accept
+
+    def _should_accept_expert_pick(self, event) -> bool:
+        team = event["team"]
+        item = event["item"]
+
+        if not item:
+            return False
+
+        if not team.can_buy_more(self.items_per_team):
+            return False
+
+        if item.shop_price > event["leftover_before"]:
+            return False
+
+        est = team.expert.estimate_value(item, self.rng)
+        margin = est - item.shop_price
+
+        if isinstance(team.strategy, RiskAverseStrategy):
+            return margin >= 6.0 and item.condition >= 0.6
+
+        return margin >= 3.0
+
+    def expert_purchases_done(self) -> bool:
+        return all(evt["decision"] is not None for evt in getattr(self, "expert_purchase_events", []))
 
     def start_appraisal(self):
         # appraise all items (team items + expert pick)
