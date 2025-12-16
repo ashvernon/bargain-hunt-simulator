@@ -120,7 +120,7 @@ class GameState:
         return all(teams_complete)
 
     def _toggle_speed(self):
-        speeds = [1.0, 3.0, 8.0]
+        speeds = [2.0, 10.0, 20.0]
         try:
             idx = speeds.index(self.time_scale)
         except ValueError:

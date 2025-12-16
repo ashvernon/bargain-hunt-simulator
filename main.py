@@ -5,7 +5,7 @@ from ui.pygame_app import run_app
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the Bargain Hunt simulator")
-    parser.add_argument("--seed", type=int, default=123, help="Random seed for deterministic runs")
+    parser.add_argument("--seed", type=int, default=127, help="Random seed for deterministic runs")
     parser.add_argument("--episode", type=int, default=1, help="Episode index")
     parser.add_argument(
         "--market-minutes",
