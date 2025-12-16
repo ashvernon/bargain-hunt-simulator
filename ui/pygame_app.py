@@ -3,6 +3,7 @@ from typing import Optional
 from config import GameConfig
 from constants import BG
 from game_state import GameState
+from ui.splash import play_splash
 
 def run_app(seed: int = 123, episode_idx: int = 1, market_seconds: Optional[float] = None):
     default_seconds = GameConfig().market_seconds
@@ -11,6 +12,10 @@ def run_app(seed: int = 123, episode_idx: int = 1, market_seconds: Optional[floa
     screen = pygame.display.set_mode((cfg.window_w, cfg.window_h))
     pygame.display.set_caption("Bargain Hunt Simulator (Starter)")
     clock = pygame.time.Clock()
+
+    if not play_splash(screen, clock, cfg):
+        pygame.quit()
+        return
 
     state = GameState(cfg=cfg, seed=seed, episode_idx=episode_idx)
 
