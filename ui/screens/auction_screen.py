@@ -270,33 +270,45 @@ class AuctionScreen(Screen):
 
         img = self._get_item_image(item)
         if img:
-            scaled = pygame.transform.smoothscale(img, (rect.width, rect.height))
-            surface.blit(scaled, rect)
+            padding = 10
+            max_side = max(1, min(rect.width, rect.height) - padding * 2)
+            scale = min(max_side / img.get_width(), max_side / img.get_height())
+            scaled_size = (int(img.get_width() * scale), int(img.get_height() * scale))
+            scaled = pygame.transform.smoothscale(img, scaled_size)
+            pos = (
+                rect.x + (rect.width - scaled_size[0]) // 2,
+                rect.y + (rect.height - scaled_size[1]) // 2,
+            )
+            surface.blit(scaled, pos)
         else:
             draw_text(surface, "Image spot", rect.x + 10, rect.y + 10, self.small, MUTED)
             draw_text(surface, item.name[:28], rect.x + 10, rect.y + 34, self.small, TEXT)
 
     def _render_lot_panel(self, surface, x, y, w, title, lot):
-        panel_rect = (x, y, w, 230)
+        image_size = min(w - 24, 120)
+        text_block_height = 96
+        panel_height = image_size + 42 + text_block_height
+        panel_rect = (x, y, w, panel_height)
         draw_panel(surface, panel_rect)
         draw_text(surface, title, x + 12, y + 12, self.font, GOLD)
 
-        img_rect = pygame.Rect(x + 12, y + 42, w - 24, 110)
+        img_rect = pygame.Rect(x + 12, y + 42, image_size, image_size)
         if not lot:
             pygame.draw.rect(surface, (18, 26, 50), img_rect, border_radius=10)
             draw_text(surface, "Image spot", img_rect.x + 10, img_rect.y + 10, self.small, MUTED)
             draw_text(surface, "Awaiting lot...", img_rect.x + 10, img_rect.y + 34, self.small, TEXT)
-            draw_text(surface, "Keep the pace — more bidders coming soon", x + 12, y + 160, self.small, MUTED)
-            return
+            draw_text(surface, "Keep the pace — more bidders coming soon", x + 12, img_rect.bottom + 14, self.small, MUTED)
+            return panel_height
 
         self._render_item_image(surface, img_rect, lot.item)
 
-        text_y = y + 160
+        text_y = img_rect.bottom + 14
         tag = " [EXPERT]" if lot.item.is_expert_pick else ""
         draw_text(surface, f"{lot.team.name}{tag}", x + 12, text_y, self.small, lot.team.color); text_y += 18
         draw_text(surface, f"{lot.item.name}", x + 12, text_y, self.small, TEXT); text_y += 18
         draw_text(surface, f"Paid ${lot.item.shop_price:.0f}  |  Appraised ${lot.item.appraised_value:.0f}", x + 12, text_y, self.small, MUTED); text_y += 18
         draw_text(surface, f"Category: {lot.item.category}  •  Condition {lot.item.condition*100:0.0f}%", x + 12, text_y, self.small, MUTED)
+        return panel_height
 
     def _render_last_sale(self, surface, x, y, w):
         if not self.episode.last_sold:
@@ -319,9 +331,11 @@ class AuctionScreen(Screen):
 
         side_x = stage_rect.x + stage_rect.width + 16
         side_w = play_w - side_x - self.cfg.margin
-        self._render_lot_panel(surface, side_x, stage_rect.y, side_w, "Now selling", self.current_lot)
-        self._render_lot_panel(surface, side_x, stage_rect.y + 250, side_w, "Up next", self._peek_next_lot())
-        self._render_last_sale(surface, side_x, stage_rect.y + 520, side_w)
+        now_h = self._render_lot_panel(surface, side_x, stage_rect.y, side_w, "Now selling", self.current_lot)
+        gap = 20
+        up_next_y = stage_rect.y + now_h + gap
+        next_h = self._render_lot_panel(surface, side_x, up_next_y, side_w, "Up next", self._peek_next_lot())
+        self._render_last_sale(surface, side_x, up_next_y + next_h + gap * 2, side_w)
 
         # progress bar
         total = len(self.episode.auction_queue)
