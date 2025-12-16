@@ -204,8 +204,10 @@ class AuctionScreen(Screen):
         if callout:
             draw_text(surface, callout, rect[0] + 20, price_y + 54, self.font, ACCENT)
 
+        ticker_rect = pygame.Rect(rect[0] + rect[2] - 260, rect[1] + 16, 240, 96)
+
         self._render_crowd(surface, rect)
-        self._render_bid_ticker(surface, rect)
+        self._render_bid_ticker(surface, ticker_rect)
 
     def _render_crowd(self, surface, rect):
         rows = [rect[1] + rect[3] - 80, rect[1] + rect[3] - 32]
@@ -231,20 +233,18 @@ class AuctionScreen(Screen):
         if applause:
             draw_text(surface, applause, rect[0] + rect[2] - 180, rect[1] + rect[3] - 110, self.small, GOLD)
 
-    def _render_bid_ticker(self, surface, rect):
-        ticker_h = 82
-        ticker_rect = pygame.Rect(rect[0] + 14, rect[1] + rect[3] - ticker_h - 10, rect[2] - 28, ticker_h)
-        pygame.draw.rect(surface, (18, 24, 48), ticker_rect, border_radius=12)
-        draw_text(surface, "Bid history", ticker_rect.x + 12, ticker_rect.y + 10, self.small, MUTED)
+    def _render_bid_ticker(self, surface, rect: pygame.Rect):
+        pygame.draw.rect(surface, (18, 24, 48), rect, border_radius=12)
+        draw_text(surface, "Bid history", rect.x + 12, rect.y + 10, self.small, MUTED)
 
-        y = ticker_rect.y + 32
+        y = rect.y + 32
         last_entries = self.bid_history[-3:]
         for step in last_entries:
             bidder = step["bidder"]
             amt = step["amount"]
             highlight = bidder == self.active_bidder and self.bid_flash > 0
             col = ACCENT if highlight else TEXT
-            draw_text(surface, f"{bidder} at ${amt:,.0f}", ticker_rect.x + 12, y, self.small, col)
+            draw_text(surface, f"{bidder} at ${amt:,.0f}", rect.x + 12, y, self.small, col)
             y += 18
 
     def _render_item_image(self, surface, rect, item):
