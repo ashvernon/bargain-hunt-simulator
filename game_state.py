@@ -1,6 +1,7 @@
 import pygame
 from config import GameConfig
 from ui.screens.market_screen import MarketScreen
+from ui.screens.expert_decision_screen import ExpertDecisionScreen
 from ui.screens.appraisal_screen import AppraisalScreen
 from ui.screens.auction_screen import AuctionScreen
 from ui.screens.results_screen import ResultsScreen
@@ -21,9 +22,11 @@ class GameState:
         self.episode.setup()
 
         self.market_time_left = cfg.market_seconds
+        self.expert_decision_started = False
 
         self.screens = {
             "MARKET": MarketScreen(cfg, self.episode),
+            "EXPERT_DECISION": ExpertDecisionScreen(cfg, self.episode),
             "APPRAISAL": AppraisalScreen(cfg, self.episode),
             "AUCTION": AuctionScreen(cfg, self.episode),
             "RESULTS": ResultsScreen(cfg, self.episode),
@@ -44,7 +47,11 @@ class GameState:
 
             if self.market_time_left <= 0:
                 # expert leftover purchase
-                self.episode.finish_market_expert_leftover_purchase()
+                self._enter_expert_decision_phase()
+
+        elif self.phase == "EXPERT_DECISION":
+            self.screen.update(dt)
+            if self.episode.expert_purchases_done():
                 self._advance_phase()
 
         elif self.phase == "APPRAISAL":
@@ -62,6 +69,11 @@ class GameState:
 
     def _advance_phase(self, force=False):
         if self.phase == "MARKET":
+            self._enter_expert_decision_phase()
+            return
+        elif self.phase == "EXPERT_DECISION":
+            if not self.episode.expert_purchases_done():
+                return
             self.phase = "APPRAISAL"
         elif self.phase == "APPRAISAL":
             self.phase = "AUCTION"
@@ -71,6 +83,18 @@ class GameState:
             self.episode.compute_results()
 
         self.screen = self.screens[self.phase]
+
+    def _enter_expert_decision_phase(self):
+        if not self.expert_decision_started:
+            self.episode.finish_market_expert_leftover_purchase()
+            self.expert_decision_started = True
+        self.phase = "EXPERT_DECISION"
+        self.screen = self.screens[self.phase]
+        # reset the decision cursor now that new proposals exist
+        if hasattr(self.screen, "cursor"):
+            self.screen.cursor = 0
+            if hasattr(self.screen, "_sync_cursor"):
+                self.screen._sync_cursor()
 
     def render(self, screen):
         self.screen.render(screen)
