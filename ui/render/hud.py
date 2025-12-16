@@ -2,6 +2,14 @@ import pygame
 from constants import TEXT, MUTED, GOLD, GOOD, BAD
 from ui.render.draw import draw_text, draw_panel
 
+
+def _format_time(seconds: float) -> str:
+    seconds = max(0.0, seconds)
+    minutes, secs = divmod(int(seconds), 60)
+    if minutes:
+        return f"{minutes:d}:{secs:02d}"
+    return f"{secs:d}s"
+
 def render_hud(surface, cfg, episode, phase, time_left=None):
     font = pygame.font.SysFont(None, 22)
     small = pygame.font.SysFont(None, 18)
@@ -13,7 +21,7 @@ def render_hud(surface, cfg, episode, phase, time_left=None):
     y = 26
     draw_text(surface, f"Phase: {phase}", x, y, font); y += 26
     if time_left is not None and phase == "MARKET":
-        draw_text(surface, f"Time left: {max(0.0, time_left):0.1f}s", x, y, font, MUTED); y += 26
+        draw_text(surface, f"Time left: {_format_time(time_left)}", x, y, font, MUTED); y += 26
 
     y += 8
     for team in episode.teams:
