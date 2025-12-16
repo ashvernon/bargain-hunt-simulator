@@ -1,11 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass
+
 from models.item import Item
+from sim.item_database import ItemDatabase
 
 CATEGORIES = ["ceramics", "clocks", "tools", "glassware", "prints", "toys", "silverware", "books"]
 ERAS = ["victorian", "edwardian", "mid-century", "70s", "modern", "art-deco"]
 
-def make_item(rng, item_id: int) -> Item:
+
+def _generate_fallback_item(rng, item_id: int) -> Item:
+    """Generate a synthetic item if the item database is empty."""
     cat = rng.choice(CATEGORIES)
     era = rng.choice(ERAS)
 
@@ -18,7 +22,6 @@ def make_item(rng, item_id: int) -> Item:
     true_value = base * (0.55 + 0.75 * condition) * rng.lognormal(0.0, 0.35)
     true_value = float(round(true_value, 2))
 
-    # Shop price: depends on stall pricing style; set later via pricing module
     return Item(
         item_id=item_id,
         name=f"{era} {cat[:-1] if cat.endswith('s') else cat} #{item_id}",
@@ -30,3 +33,25 @@ def make_item(rng, item_id: int) -> Item:
         true_value=true_value,
         shop_price=0.0,
     )
+
+
+@dataclass
+class ItemFactory:
+    database: ItemDatabase
+
+    @classmethod
+    def with_default_db(cls) -> "ItemFactory":
+        return cls(ItemDatabase.load_default())
+
+    def make_item(self, rng, item_id: int) -> Item:
+        if self.database.templates:
+            return self.database.next_item(rng, item_id)
+        return _generate_fallback_item(rng, item_id)
+
+
+def make_item(rng, item_id: int) -> Item:
+    """Convenience wrapper to avoid plumbing ItemFactory everywhere."""
+    if not hasattr(make_item, "_factory"):
+        make_item._factory = ItemFactory.with_default_db()
+    factory: ItemFactory = make_item._factory
+    return factory.make_item(rng, item_id)

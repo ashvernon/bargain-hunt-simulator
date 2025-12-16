@@ -1,5 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
 
 @dataclass
 class Item:
@@ -17,6 +18,9 @@ class Item:
     auction_price: float = 0.0
     is_expert_pick: bool = False
     was_negotiated: bool = False
+    description: str = ""
+    image_path: str | None = None
+    attributes: dict[str, str] = field(default_factory=dict)
 
     @property
     def profit(self) -> float:
