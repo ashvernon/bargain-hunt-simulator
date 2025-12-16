@@ -1,5 +1,6 @@
 import pygame
 from config import GameConfig
+from sim.item_factory import configure_item_factory
 from ui.screens.market_screen import MarketScreen
 from ui.screens.expert_decision_screen import ExpertDecisionScreen
 from ui.screens.appraisal_screen import AppraisalScreen
@@ -12,6 +13,11 @@ class GameState:
         self.phase = "MARKET"
         self.time_scale = 1.0
         play_rect = (0, 0, cfg.window_w - cfg.hud_w, cfg.window_h)
+
+        # Configure which item dataset should be used for this run before
+        # any items are generated.
+        configure_item_factory(cfg.item_source)
+
         from models.episode import Episode
         self.episode = Episode(
             ep_idx=episode_idx,

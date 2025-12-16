@@ -70,9 +70,75 @@ class ItemDatabase:
         return cls(templates)
 
     @classmethod
+    def load_jsonl(cls, path: Path) -> "ItemDatabase":
+        """Load item templates from a JSONL file.
+
+        Each line is expected to be a JSON object containing at least:
+        - title (used for the item name)
+        - category
+        - era
+        - condition_score, rarity_score, true_value
+        - image_filename (relative path to the generated asset)
+        """
+
+        if not path.exists():
+            return cls([])
+
+        templates: list[ItemTemplate] = []
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                entry = json.loads(line)
+
+                name = entry.get("title") or entry.get("name") or "Unknown item"
+                condition = float(entry.get("condition_score", 0.6))
+                rarity = float(entry.get("rarity_score", 0.5))
+                style_score = float(entry.get("style_score", rarity))
+                true_value = float(entry.get("true_value", 50.0))
+
+                attributes: dict[str, str] = {}
+                if "item_id" in entry:
+                    attributes["dataset_id"] = str(entry["item_id"])
+                if "item_type" in entry:
+                    attributes["item_type"] = str(entry["item_type"])
+                if "year_hint" in entry:
+                    attributes["year_hint"] = str(entry["year_hint"])
+                if "materials" in entry:
+                    attributes["materials"] = ", ".join(map(str, entry.get("materials", [])))
+
+                templates.append(
+                    ItemTemplate(
+                        name=name,
+                        category=str(entry.get("category", "misc")),
+                        era=str(entry.get("era", "unknown")),
+                        condition=condition,
+                        rarity=rarity,
+                        style_score=style_score,
+                        true_value=true_value,
+                        description=entry.get("description", entry.get("prompt_image", "")),
+                        image=entry.get("image_filename"),
+                        attributes=attributes,
+                    )
+                )
+
+        return cls(templates)
+
+    @classmethod
     def load_default(cls) -> "ItemDatabase":
         assets_dir = Path(__file__).resolve().parent.parent / "assets"
         return cls.load(assets_dir / "items.json")
+
+    @classmethod
+    def load_generated(cls) -> "ItemDatabase":
+        data_dir = Path(__file__).resolve().parent.parent / "data"
+        return cls.load_jsonl(data_dir / "items_100.jsonl")
+
+    @classmethod
+    def load_combined(cls) -> "ItemDatabase":
+        default_templates = cls.load_default().templates
+        generated_templates = cls.load_generated().templates
+        return cls(default_templates + generated_templates)
 
     def pick_template(self, rng) -> ItemTemplate | None:
         if not self.templates:

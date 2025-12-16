@@ -13,6 +13,11 @@ class GameConfig:
     team_speed_px_s: float = 160.0
     buy_radius_px: float = 28.0
 
+    # Item sourcing
+    # Which dataset to use for generating items: default assets JSON, generated
+    # JSONL set, or a combination of both
+    item_source: str = "default"
+
     # Show rules
     items_per_team: int = 3          # team purchases
     expert_extra_item: int = 1       # expert leftover purchase (0/1)
