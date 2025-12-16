@@ -14,14 +14,18 @@ class Market:
         x0,y0,w,h = play_rect
         stalls = []
         styles = ["fair", "overpriced", "chaotic"]
-        # Place 6 stalls around the map
+        # Place stalls around the map
         layout = [
-            (x0+60,  y0+60),
-            (x0+w-220, y0+70),
-            (x0+80,  y0+h-180),
-            (x0+w-240, y0+h-190),
-            (x0+w/2-80, y0+120),
-            (x0+w/2-80, y0+h-230),
+            (x0 + 60, y0 + 60),
+            (x0 + w - 220, y0 + 70),
+            (x0 + 80, y0 + h - 180),
+            (x0 + w - 240, y0 + h - 190),
+            (x0 + w / 2 - 80, y0 + 120),
+            (x0 + w / 2 - 80, y0 + h - 230),
+            (x0 + 40, y0 + h / 2 - 30),
+            (x0 + w - 210, y0 + h / 2 - 30),
+            (x0 + w / 2 - 200, y0 + h / 2 + 70),
+            (x0 + w / 2 + 40, y0 + h / 2 + 70),
         ]
         for i,(sx,sy) in enumerate(layout, start=1):
             style = rng.choice(styles)
