@@ -3,7 +3,7 @@
 An AI-driven mini-simulation of a *Bargain Hunt*-style episode. Two teams roam a procedurally generated market, buy antiques with expert guidance, take one last expert pick from the leftovers, then head to appraisal, auction, and scoring.
 
 ## Features
-- **Procedural fairground:** Each episode builds six stalls with varied pricing styles, discount behavior, and randomized stock, keeping the shopping phase fresh while respecting starting budgets.【F:models/market.py†L12-L54】【F:config.py†L17-L21】
+- **Procedural fairground:** Each episode builds ten stalls with varied pricing styles, discount behavior, and randomized stock, keeping the shopping phase fresh while respecting starting budgets.【F:models/market.py†L12-L54】【F:config.py†L17-L21】
 - **Personality-driven teams:** The Red (ValueHunter strategy) and Blue (RiskAverse strategy) duos rely on contestant confidence/taste plus their dedicated experts for valuations, negotiation boosts, and movement targets.【F:models/episode.py†L29-L86】【F:ai/strategy_value.py†L6-L27】【F:ai/strategy_risk.py†L6-L27】
 - **Negotiation and leftover advice:** Purchases include chance-based haggling bonuses and an automatic expert leftover proposal once shopping ends; teams auto-accept or decline based on strategy and remaining budget.【F:models/episode.py†L88-L157】【F:models/episode.py†L183-L216】【F:sim/pricing.py†L3-L18】
 - **Appraisal and auction drama:** An independent auctioneer appraises all items before a paced auction sequence that simulates bids, bidder identities, and hammer calls influenced by category demand and mood.【F:models/episode.py†L218-L251】【F:models/auction_house.py†L4-L33】【F:ui/screens/auction_screen.py†L1-L132】

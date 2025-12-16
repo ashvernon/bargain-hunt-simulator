@@ -6,10 +6,14 @@ class ValueHunterStrategy(Strategy):
     def pick_target_stall(self, market, team, rng, items_per_team: int):
         best = None
         best_score = float("-inf")
+        fallback = None
+        fallback_price = float("inf")
         affordable_needed = items_per_team - team.team_item_count
         min_expected_price = min(12.0, market.min_item_price(default=12.0))
         for st in market.stalls:
             if team.stall_cooldowns.get(st.stall_id, 0) > 0:
+                continue
+            if not st.items:
                 continue
             affordable = sum(
                 1
@@ -24,13 +28,16 @@ class ValueHunterStrategy(Strategy):
                 )
             )
             if affordable == 0:
+                cheapest = min((it.shop_price for it in st.items), default=float("inf"))
+                if cheapest < fallback_price:
+                    fallback_price, fallback = cheapest, st
                 continue
             taste_pull = team.stall_taste_score(st)
             confidence_push = team.average_confidence * 0.6
             score = affordable + taste_pull + confidence_push + rng.uniform(0, 0.25)
             if score > best_score:
                 best_score, best = score, st
-        return best
+        return best or fallback
 
     def decide_purchase(self, market, team, stall, rng, items_per_team: int):
         min_expected_price = min(12.0, market.min_item_price(default=12.0))
