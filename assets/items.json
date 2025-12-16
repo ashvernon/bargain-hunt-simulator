@@ -1,0 +1,184 @@
+[
+  {
+    "name": "Antique ceramic vase with floral design",
+    "category": "ceramics",
+    "era": "edwardian",
+    "condition": 0.82,
+    "rarity": 0.64,
+    "style_score": 0.78,
+    "true_value": 320.0,
+    "description": "Tall porcelain vase with hand-painted peonies and a subtle celadon glaze.",
+    "attributes": {
+      "material": "porcelain",
+      "dimensions": "28 cm tall",
+      "marks": "kiln-fired maker's stamp"
+    },
+    "image": "assets/Antique ceramic vase with floral design.png"
+  },
+  {
+    "name": "Victorian carriage clock",
+    "category": "clocks",
+    "era": "victorian",
+    "condition": 0.7,
+    "rarity": 0.58,
+    "style_score": 0.6,
+    "true_value": 240.0,
+    "description": "Brass-framed carriage clock with beveled glass panels and original key.",
+    "attributes": {
+      "movement": "8-day",
+      "glass": "beveled",
+      "notes": "Keeps good time"
+    },
+    "image": null
+  },
+  {
+    "name": "Mid-century teak side table",
+    "category": "furniture",
+    "era": "mid-century",
+    "condition": 0.76,
+    "rarity": 0.42,
+    "style_score": 0.72,
+    "true_value": 180.0,
+    "description": "Danish-inspired teak side table with floating shelf and tapered legs.",
+    "attributes": {
+      "dimensions": "55 x 45 x 45 cm",
+      "maker": "unknown"
+    },
+    "image": null
+  },
+  {
+    "name": "Art deco cocktail shaker",
+    "category": "barware",
+    "era": "art-deco",
+    "condition": 0.68,
+    "rarity": 0.55,
+    "style_score": 0.81,
+    "true_value": 210.0,
+    "description": "Chrome-plated shaker with geometric engraving and intact strainer lid.",
+    "attributes": {
+      "material": "chrome",
+      "height": "25 cm"
+    },
+    "image": null
+  },
+  {
+    "name": "Vintage tin robot toy",
+    "category": "toys",
+    "era": "70s",
+    "condition": 0.62,
+    "rarity": 0.73,
+    "style_score": 0.69,
+    "true_value": 160.0,
+    "description": "Wind-up tin robot with bright lithographs and functioning spark mechanism.",
+    "attributes": {
+      "mechanism": "wind-up",
+      "height": "18 cm"
+    },
+    "image": null
+  },
+  {
+    "name": "Sterling silver tea set",
+    "category": "silverware",
+    "era": "edwardian",
+    "condition": 0.8,
+    "rarity": 0.61,
+    "style_score": 0.74,
+    "true_value": 450.0,
+    "description": "Four-piece sterling set with wooden handles and monogrammed lids.",
+    "attributes": {
+      "pieces": "teapot, coffee pot, sugar, creamer",
+      "weight": "1.2 kg total"
+    },
+    "image": null
+  },
+  {
+    "name": "First edition adventure novel",
+    "category": "books",
+    "era": "modern",
+    "condition": 0.66,
+    "rarity": 0.7,
+    "style_score": 0.55,
+    "true_value": 140.0,
+    "description": "Signed first edition with intact dust jacket and crisp pages.",
+    "attributes": {
+      "binding": "hardcover",
+      "signature": "author-signed on title page"
+    },
+    "image": null
+  },
+  {
+    "name": "Studio glass art bowl",
+    "category": "glassware",
+    "era": "modern",
+    "condition": 0.88,
+    "rarity": 0.52,
+    "style_score": 0.85,
+    "true_value": 260.0,
+    "description": "Hand-blown bowl with layered colors and controlled bubbles.",
+    "attributes": {
+      "diameter": "32 cm",
+      "signature": "etched artist mark"
+    },
+    "image": null
+  },
+  {
+    "name": "Engraved brass telescope",
+    "category": "scientific",
+    "era": "victorian",
+    "condition": 0.71,
+    "rarity": 0.59,
+    "style_score": 0.68,
+    "true_value": 230.0,
+    "description": "Extendable brass telescope with leather grip and clear optics.",
+    "attributes": {
+      "length": "45 cm extended",
+      "case": "original leather case"
+    },
+    "image": null
+  },
+  {
+    "name": "Hand-loomed kilim runner",
+    "category": "textiles",
+    "era": "modern",
+    "condition": 0.77,
+    "rarity": 0.46,
+    "style_score": 0.71,
+    "true_value": 175.0,
+    "description": "Wool kilim runner with geometric motifs and natural dyes.",
+    "attributes": {
+      "dimensions": "260 x 75 cm",
+      "origin": "Anatolia"
+    },
+    "image": null
+  },
+  {
+    "name": "Early 20th century oil landscape",
+    "category": "prints",
+    "era": "modern",
+    "condition": 0.74,
+    "rarity": 0.57,
+    "style_score": 0.76,
+    "true_value": 300.0,
+    "description": "Framed oil on board of a misty valley, signed lower right.",
+    "attributes": {
+      "frame": "giltwood",
+      "size": "40 x 55 cm"
+    },
+    "image": null
+  },
+  {
+    "name": "Industrial machinist's chest",
+    "category": "tools",
+    "era": "mid-century",
+    "condition": 0.69,
+    "rarity": 0.5,
+    "style_score": 0.6,
+    "true_value": 195.0,
+    "description": "Oak machinist's chest with felt-lined drawers and nickel hardware.",
+    "attributes": {
+      "drawers": "7",
+      "liner": "green felt"
+    },
+    "image": null
+  }
+]
