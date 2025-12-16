@@ -19,10 +19,21 @@ def parse_args():
         default=None,
         help="Override market duration directly in seconds",
     )
+    parser.add_argument(
+        "--item-source",
+        choices=["default", "generated", "combined"],
+        default="default",
+        help="Choose which dataset to load for items",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
     market_seconds = args.market_seconds if args.market_seconds is not None else args.market_minutes * 60
-    run_app(seed=args.seed, episode_idx=args.episode, market_seconds=market_seconds)
+    run_app(
+        seed=args.seed,
+        episode_idx=args.episode,
+        market_seconds=market_seconds,
+        item_source=args.item_source,
+    )

@@ -43,6 +43,19 @@ class ItemFactory:
     def with_default_db(cls) -> "ItemFactory":
         return cls(ItemDatabase.load_default())
 
+    @classmethod
+    def from_source(cls, source: str) -> "ItemFactory":
+        source = source.lower()
+        if source == "default":
+            db = ItemDatabase.load_default()
+        elif source == "generated":
+            db = ItemDatabase.load_generated()
+        elif source == "combined":
+            db = ItemDatabase.load_combined()
+        else:
+            raise ValueError(f"Unknown item source '{source}'")
+        return cls(db)
+
     def make_item(self, rng, item_id: int) -> Item:
         if self.database.templates:
             return self.database.next_item(rng, item_id)
@@ -55,3 +68,13 @@ def make_item(rng, item_id: int) -> Item:
         make_item._factory = ItemFactory.with_default_db()
     factory: ItemFactory = make_item._factory
     return factory.make_item(rng, item_id)
+
+
+def configure_item_factory(source: str):
+    """Set the global ItemFactory used by make_item.
+
+    This should be called during application startup to ensure the correct
+    dataset is used when generating items.
+    """
+
+    make_item._factory = ItemFactory.from_source(source)

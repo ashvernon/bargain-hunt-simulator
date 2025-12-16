@@ -4,9 +4,17 @@ from config import GameConfig
 from constants import BG
 from game_state import GameState
 
-def run_app(seed: int = 123, episode_idx: int = 1, market_seconds: Optional[float] = None):
+def run_app(
+    seed: int = 123,
+    episode_idx: int = 1,
+    market_seconds: Optional[float] = None,
+    item_source: str = "default",
+):
     default_seconds = GameConfig().market_seconds
-    cfg = GameConfig(market_seconds=market_seconds if market_seconds is not None else default_seconds)
+    cfg = GameConfig(
+        market_seconds=market_seconds if market_seconds is not None else default_seconds,
+        item_source=item_source,
+    )
     pygame.init()
     screen = pygame.display.set_mode((cfg.window_w, cfg.window_h))
     pygame.display.set_caption("Bargain Hunt Simulator (Starter)")
