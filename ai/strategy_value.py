@@ -9,7 +9,9 @@ class ValueHunterStrategy(Strategy):
         best_score = float("-inf")
         for st in market.stalls:
             affordable = sum(1 for it in st.items if it.shop_price <= team.budget_left)
-            score = affordable + rng.uniform(0, 0.25)
+            taste_pull = team.stall_taste_score(st)
+            confidence_push = team.average_confidence * 0.6
+            score = affordable + taste_pull + confidence_push + rng.uniform(0, 0.25)
             if score > best_score:
                 best_score, best = score, st
         return best
@@ -20,6 +22,10 @@ class ValueHunterStrategy(Strategy):
         if not rec:
             return None
         est = team.expert.estimate_value(rec, rng)
-        if (est - rec.shop_price) > 12.0:
+        style_bonus = team.style_affinity(rec)
+        margin = est - rec.shop_price
+        target_margin = 12.0 - style_bonus * 4.0
+        target_margin -= team.average_confidence * 1.5
+        if margin > max(6.0, target_margin):
             return rec
         return None

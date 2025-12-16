@@ -31,7 +31,7 @@ class MarketScreen(Screen):
         # teams
         for team in self.episode.teams:
             pygame.draw.circle(surface, team.color, (int(team.x), int(team.y)), 10)
-            draw_text(surface, team.name, int(team.x)+12, int(team.y)-10, self.small, team.color)
+            draw_text(surface, team.duo_label(), int(team.x)+12, int(team.y)-10, self.small, team.color)
 
         render_hud(
             surface,
