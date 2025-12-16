@@ -3,12 +3,21 @@ from dataclasses import dataclass
 from sim.rng import RNG
 from models.market import Market
 from models.team import Team
+from models.item import Item
 from models.expert import Expert
 from models.auction_house import AuctionHouse
 from sim.pricing import negotiate
 from sim.scoring import compute_team_totals, golden_gavel
 from ai.strategy_value import ValueHunterStrategy
 from ai.strategy_risk import RiskAverseStrategy
+
+@dataclass
+class AuctionLot:
+    team: Team
+    item: Item
+    position_in_team: int
+    team_total: int
+    is_bonus: bool
 
 @dataclass
 class Episode:
@@ -38,7 +47,7 @@ class Episode:
         self.appraisal_done = False
         self.auction_done = False
         self.results_done = False
-        self.auction_queue = []  # list of (team, item)
+        self.auction_queue = []  # list of AuctionLot
         self.auction_cursor = 0
 
     def update_market_ai(self, dt: float, team_speed: float, buy_radius: float):
@@ -179,10 +188,20 @@ class Episode:
     def start_auction(self):
         self.auction_queue = []
         for team in self.teams:
-            for item in team.items_bought:
-                self.auction_queue.append((team, item))
-        # Shuffle order for show drama
-        self.rng.shuffle(self.auction_queue)
+            team_items = [it for it in team.items_bought if not it.is_expert_pick]
+            bonus_items = [it for it in team.items_bought if it.is_expert_pick]
+            sequence = team_items + bonus_items
+            team_total = len(sequence)
+            for idx, item in enumerate(sequence, start=1):
+                self.auction_queue.append(
+                    AuctionLot(
+                        team=team,
+                        item=item,
+                        position_in_team=idx,
+                        team_total=team_total,
+                        is_bonus=item.is_expert_pick,
+                    )
+                )
         self.auction_cursor = 0
         self.auction_done = False
         self.last_sold = None
@@ -191,9 +210,9 @@ class Episode:
         if self.auction_cursor >= len(self.auction_queue):
             self.auction_done = True
             return
-        team, item = self.auction_queue[self.auction_cursor]
-        item.auction_price = self.auction_house.sell(item, self.rng)
-        self.last_sold = (team, item)
+        lot = self.auction_queue[self.auction_cursor]
+        lot.item.auction_price = self.auction_house.sell(lot.item, self.rng)
+        self.last_sold = lot
         self.auction_cursor += 1
         if self.auction_cursor >= len(self.auction_queue):
             self.auction_done = True
