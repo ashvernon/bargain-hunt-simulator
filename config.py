@@ -6,6 +6,9 @@ class GameConfig:
     window_w: int = 1100
     window_h: int = 700
     fps: int = 60
+    show_splash: bool = True
+    splash_duration: float = 8.0
+    splash_video_path: str = "assets/video/into_vid.mp4"
 
     # Market phase
     # Default to an hour-long shopping period

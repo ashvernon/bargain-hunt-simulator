@@ -12,9 +12,11 @@ An AI-driven mini-simulation of a *Bargain Hunt*-style episode. Two teams roam a
 ## Run
 1. (Optional) Create a virtual environment.
 2. Install dependencies:
-   - `pip install pygame`
+   - `pip install pygame moviepy`
 3. Launch the simulator:
    - `python main.py`
+
+At startup the app plays an 8-second intro video from `assets/video/into_vid.mp4`; set `show_splash = False` in `config.py` to skip it.
 
 Command-line options let you set the random seed, pick an episode index, and adjust the market timer:
 
