@@ -8,7 +8,8 @@ class GameConfig:
     fps: int = 60
 
     # Market phase
-    market_seconds: float = 35.0
+    # Default to an hour-long shopping period
+    market_seconds: float = 60.0 * 60.0
     team_speed_px_s: float = 160.0
     buy_radius_px: float = 28.0
 
