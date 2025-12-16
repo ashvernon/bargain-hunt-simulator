@@ -28,7 +28,8 @@ class AuctionScreen(Screen):
 
         y = 70
         if self.episode.last_sold:
-            team, it = self.episode.last_sold
+            lot = self.episode.last_sold
+            team, it = lot.team, lot.item
             tag = " [EXPERT]" if it.is_expert_pick else ""
             draw_text(surface, f"Sold: {it.name}{tag}", 24, y, self.small, TEXT); y += 22
             profit = it.auction_price - it.shop_price
@@ -38,7 +39,20 @@ class AuctionScreen(Screen):
         # progress
         total = len(self.episode.auction_queue)
         cur = self.episode.auction_cursor
-        draw_text(surface, f"Progress: {cur}/{total}", 24, play_w and 120 or 120, self.small, MUTED)
+        progress_label = f"Progress: {cur}/{total}"
+        draw_text(surface, progress_label, 24, play_w and 120 or 120, self.small, MUTED)
+
+        if cur < total:
+            next_lot = self.episode.auction_queue[cur]
+            bonus_tag = " (Bonus)" if next_lot.is_bonus else ""
+            draw_text(
+                surface,
+                f"Next: {next_lot.team.name} item {next_lot.position_in_team}/{next_lot.team_total}{bonus_tag}",
+                24,
+                play_w and 120 or 120,
+                self.small,
+                MUTED,
+            )
 
         render_hud(
             surface,
