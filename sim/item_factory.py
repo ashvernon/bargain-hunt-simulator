@@ -46,7 +46,7 @@ class ItemFactory:
     @classmethod
     def from_source(cls, source: str) -> "ItemFactory":
         source = source.lower()
-        if source == "default":
+        if source in {"default", "assets"}:
             db = ItemDatabase.load_default()
         elif source == "generated":
             db = ItemDatabase.load_generated()
