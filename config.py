@@ -6,8 +6,8 @@ class GameConfig:
     window_w: int = 1100
     window_h: int = 700
     fps: int = 60
-    show_splash: bool = True
-    splash_duration: float = 8.0
+    show_splash_video: bool = True
+    splash_video_max_seconds: float = 8.0
     splash_video_path: str = "assets/video/into_vid.mp4"
 
     # Market phase
@@ -18,9 +18,10 @@ class GameConfig:
 
     # Item sourcing
     # Which dataset to use for generating items: default assets JSON, generated
-    # JSONL set, or a combination of both. Default to the generated JSONL set so
+    # JSONL set, or a combination of both. Defaults to the assets JSON for
+    # backwards compatibility, but can be switched to the generated JSONL set so
     # item images and metadata from data/items_100.jsonl are available in-game.
-    item_source: str = "generated"
+    item_source: str = "assets"
 
     # Show rules
     items_per_team: int = 3          # team purchases
