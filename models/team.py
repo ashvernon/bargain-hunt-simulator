@@ -25,6 +25,8 @@ class Team:
     golden_gavel: bool = False
 
     last_action: str = ""
+    spend_plan = None
+    stall_cooldowns: dict[int, int] = field(default_factory=dict)
 
     @property
     def average_confidence(self) -> float:
@@ -43,13 +45,20 @@ class Team:
 
     def can_buy_more(self, items_per_team: int) -> bool:
         # only counts team-bought items
-        team_items = [i for i in self.items_bought if not i.is_expert_pick]
-        return len(team_items) < items_per_team
+        return len(self.team_items) < items_per_team
 
     def distance_to(self, x, y):
         dx = x - self.x
         dy = y - self.y
         return (dx*dx + dy*dy) ** 0.5
+
+    @property
+    def team_items(self):
+        return [i for i in self.items_bought if not i.is_expert_pick]
+
+    @property
+    def team_item_count(self) -> int:
+        return len(self.team_items)
 
     def stall_taste_score(self, stall) -> float:
         """How much this duo is drawn to the stall's style and condition."""
