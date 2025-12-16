@@ -6,6 +6,7 @@ from models.market import Market
 from models.team import Team
 from models.item import Item
 from models.expert import Expert
+from models.auctioneer import Auctioneer
 from models.auction_house import AuctionHouse
 from sim.pricing import negotiate
 from sim.scoring import compute_team_totals, golden_gavel
@@ -34,6 +35,7 @@ class Episode:
         self.rng = RNG(self.seed)
         self.market = Market.generate(self.rng, self.play_rect)
         self.auction_house = AuctionHouse.generate(self.rng)
+        self.auctioneer = Auctioneer("Chloe", accuracy=0.83, bias={"silverware": 1.05})
 
         # Experts
         exp_a = Expert("Natasha", accuracy=0.80, negotiation_bonus=0.08, bias={"glassware": 1.06})
@@ -221,7 +223,7 @@ class Episode:
         # appraise all items (team items + expert pick)
         for team in self.teams:
             for item in team.items_bought:
-                item.appraised_value = team.expert.appraise(item, self.rng)
+                item.appraised_value = self.auctioneer.appraise(item, self.rng)
         self.appraisal_done = True
 
     def start_auction(self):
