@@ -77,6 +77,9 @@ class Episode:
             ),
         ]
 
+        for team in self.teams:
+            team.spend_plan = team.strategy.choose_spend_plan(self.rng)
+
         self.appraisal_done = False
         self.auction_done = False
         self.results_done = False
@@ -86,6 +89,15 @@ class Episode:
     def update_market_ai(self, dt: float, team_speed: float, buy_radius: float):
         # Simple AI: pick a target stall; move; when close, attempt to buy.
         for team in self.teams:
+            # decay stall cooldowns
+            for sid in list(team.stall_cooldowns.keys()):
+                team.stall_cooldowns[sid] -= 1
+                if team.stall_cooldowns[sid] <= 0:
+                    del team.stall_cooldowns[sid]
+
+            if not team.spend_plan:
+                team.spend_plan = team.strategy.choose_spend_plan(self.rng)
+
             if not team.can_buy_more(self.items_per_team):
                 team.last_action = "Done shopping"
                 continue
@@ -97,8 +109,12 @@ class Episode:
                 if target and not target.items:
                     target = None
 
+            if target and not self._stall_has_affordable_item(team, target):
+                team.stall_cooldowns[target.stall_id] = 3
+                target = None
+
             if target is None:
-                target = team.strategy.pick_target_stall(self.market, team, self.rng)
+                target = team.strategy.pick_target_stall(self.market, team, self.rng, self.items_per_team)
                 team.target_stall_id = target.stall_id if target else None
 
             if not target:
@@ -111,7 +127,7 @@ class Episode:
 
             # purchase if close enough
             if team.distance_to(tx, ty) <= buy_radius:
-                item = team.strategy.decide_purchase(self.market, team, target, self.rng)
+                item = team.strategy.decide_purchase(self.market, team, target, self.rng, self.items_per_team)
                 if item:
                     # negotiate (expert helps)
                     neg_bonus = team.negotiation_bonus(team.expert.negotiation_bonus)
@@ -133,7 +149,24 @@ class Episode:
                     else:
                         team.last_action = "Couldn't afford after negotiation"
                 else:
+                    team.stall_cooldowns[target.stall_id] = 3
+                    team.target_stall_id = None
                     team.last_action = "Expert says: keep looking"
+
+    def _stall_has_affordable_item(self, team, stall) -> bool:
+        min_expected_price = min(12.0, self.market.min_item_price(default=12.0))
+        remaining_slots = self.items_per_team - team.team_item_count
+        for it in stall.items:
+            if team.spend_plan and team.spend_plan.allows_purchase(
+                price=it.shop_price,
+                purchase_index=team.team_item_count,
+                budget_start=team.budget_start,
+                budget_left=team.budget_left,
+                remaining_slots=remaining_slots,
+                min_expected_price=min_expected_price,
+            ):
+                return True
+        return False
 
     def _move_towards(self, team, tx, ty, dt, speed):
         dx, dy = tx - team.x, ty - team.y

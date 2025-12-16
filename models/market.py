@@ -53,6 +53,10 @@ class Market:
             for it in st.items:
                 yield it
 
+    def min_item_price(self, default: float = 0.0) -> float:
+        prices = [it.shop_price for it in self.all_remaining_items()]
+        return min(prices) if prices else default
+
     def remove_item(self, item):
         for st in self.stalls:
             if item in st.items:
