@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pygame
 from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
@@ -101,6 +102,22 @@ class AuctionScreen(Screen):
     def _get_item_image(self, item):
         if item.name in self.image_cache:
             return self.image_cache[item.name]
+
+        # Prefer explicit image path if present on the item
+        if getattr(item, "image_path", None):
+            candidate = Path(item.image_path)
+            if not candidate.is_absolute():
+                # Allow item.image_path to omit the assets/ prefix
+                if not candidate.exists():
+                    candidate = Path("assets") / candidate
+            if candidate.exists():
+                try:
+                    img = pygame.image.load(str(candidate)).convert_alpha()
+                    self.image_cache[item.name] = img
+                    return img
+                except pygame.error:
+                    self.image_cache[item.name] = None
+                    return None
 
         possible_names = [item.name, item.name.replace("/", "-")]
         for base in possible_names:
