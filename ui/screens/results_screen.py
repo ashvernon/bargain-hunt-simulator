@@ -39,4 +39,11 @@ class ResultsScreen(Screen):
             y += 10
 
         draw_text(surface, "SPACE: skip phases | Close window to exit", 24, self.cfg.window_h - 26, self.small, MUTED)
-        render_hud(surface, self.cfg, self.episode, "RESULTS", time_left=None)
+        render_hud(
+            surface,
+            self.cfg,
+            self.episode,
+            "RESULTS",
+            time_left=None,
+            speed=getattr(self.episode, "time_scale", 1.0),
+        )

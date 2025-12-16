@@ -40,4 +40,11 @@ class AuctionScreen(Screen):
         cur = self.episode.auction_cursor
         draw_text(surface, f"Progress: {cur}/{total}", 24, play_w and 120 or 120, self.small, MUTED)
 
-        render_hud(surface, self.cfg, self.episode, "AUCTION", time_left=None)
+        render_hud(
+            surface,
+            self.cfg,
+            self.episode,
+            "AUCTION",
+            time_left=None,
+            speed=getattr(self.episode, "time_scale", 1.0),
+        )

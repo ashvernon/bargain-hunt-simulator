@@ -17,6 +17,7 @@ class Episode:
     play_rect: tuple[int,int,int,int]
     items_per_team: int
     starting_budget: float
+    time_scale: float = 1.0
 
     def setup(self):
         self.rng = RNG(self.seed)
@@ -133,6 +134,37 @@ class Episode:
         else:
             team.last_action = "Declined expert pick"
             event["decision"] = "declined"
+
+    def auto_decide_expert_purchase(self, idx: int):
+        """Let the team choose whether to follow the expert's proposal."""
+        event = self.expert_purchase_events[idx]
+        if event["decision"] is not None:
+            return
+
+        accept = self._should_accept_expert_pick(event)
+        self.resolve_expert_purchase(idx, accept)
+        return accept
+
+    def _should_accept_expert_pick(self, event) -> bool:
+        team = event["team"]
+        item = event["item"]
+
+        if not item:
+            return False
+
+        if not team.can_buy_more(self.items_per_team):
+            return False
+
+        if item.shop_price > event["leftover_before"]:
+            return False
+
+        est = team.expert.estimate_value(item, self.rng)
+        margin = est - item.shop_price
+
+        if isinstance(team.strategy, RiskAverseStrategy):
+            return margin >= 6.0 and item.condition >= 0.6
+
+        return margin >= 3.0
 
     def expert_purchases_done(self) -> bool:
         return all(evt["decision"] is not None for evt in getattr(self, "expert_purchase_events", []))

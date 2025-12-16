@@ -12,6 +12,7 @@ class ExpertDecisionScreen(Screen):
         self.font = pygame.font.SysFont(None, 26)
         self.small = pygame.font.SysFont(None, 18)
         self.cursor = 0
+        self.decision_timer = 0.0
         self._sync_cursor()
 
     def _sync_cursor(self):
@@ -28,17 +29,24 @@ class ExpertDecisionScreen(Screen):
         if self.cursor >= len(self.episode.expert_purchase_events):
             return
 
-        if event.key in (pygame.K_y, pygame.K_RETURN):
-            self.episode.resolve_expert_purchase(self.cursor, accept=True)
-            self.cursor += 1
-            self._sync_cursor()
-        elif event.key in (pygame.K_n, pygame.K_ESCAPE):
-            self.episode.resolve_expert_purchase(self.cursor, accept=False)
-            self.cursor += 1
-            self._sync_cursor()
+        # Manual input no longer controls the outcome; teams choose for themselves.
+        # Keep keypresses from pausing progression.
+        return
 
     def update(self, dt: float):
         self._sync_cursor()
+        if not getattr(self.episode, "expert_purchase_events", None):
+            return
+
+        if self.cursor >= len(self.episode.expert_purchase_events):
+            return
+
+        self.decision_timer -= dt
+        if self.decision_timer <= 0:
+            self.episode.auto_decide_expert_purchase(self.cursor)
+            self.cursor += 1
+            self._sync_cursor()
+            self.decision_timer = 0.9 / getattr(self.episode, "time_scale", 1.0)
 
     def render(self, surface):
         play_w = self.cfg.window_w - self.cfg.hud_w
@@ -59,9 +67,16 @@ class ExpertDecisionScreen(Screen):
                 item = event["item"]
                 draw_text(surface, f"Expert suggests: {item.name}", 24, 120, self.small, TEXT)
                 draw_text(surface, f"Price: ${item.shop_price:.0f}", 24, 144, self.small, MUTED)
-                draw_text(surface, "Accept purchase? (Y/N)", 24, 176, self.small, GOOD)
+                draw_text(surface, "Team is deciding...", 24, 176, self.small, GOOD)
             else:
                 draw_text(surface, "Expert has no suggestion.", 24, 120, self.small, BAD)
-                draw_text(surface, "Press N or Esc to continue", 24, 144, self.small, MUTED)
+                draw_text(surface, "Decision will be recorded automatically", 24, 144, self.small, MUTED)
 
-        render_hud(surface, self.cfg, self.episode, "EXPERT_DECISION", time_left=None)
+        render_hud(
+            surface,
+            self.cfg,
+            self.episode,
+            "EXPERT_DECISION",
+            time_left=None,
+            speed=getattr(self.episode, "time_scale", 1.0),
+        )

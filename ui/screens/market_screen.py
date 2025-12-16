@@ -33,4 +33,11 @@ class MarketScreen(Screen):
             pygame.draw.circle(surface, team.color, (int(team.x), int(team.y)), 10)
             draw_text(surface, team.name, int(team.x)+12, int(team.y)-10, self.small, team.color)
 
-        render_hud(surface, self.cfg, self.episode, "MARKET", time_left=self.time_left)
+        render_hud(
+            surface,
+            self.cfg,
+            self.episode,
+            "MARKET",
+            time_left=self.time_left,
+            speed=getattr(self.episode, "time_scale", 1.0),
+        )
