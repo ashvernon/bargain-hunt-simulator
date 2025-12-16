@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument(
         "--item-source",
         choices=["default", "generated", "combined"],
-        default="default",
+        default="generated",
         help="Choose which dataset to load for items",
     )
     return parser.parse_args()

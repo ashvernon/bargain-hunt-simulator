@@ -9,7 +9,7 @@ def run_app(
     seed: int = 123,
     episode_idx: int = 1,
     market_seconds: Optional[float] = None,
-    item_source: str = "default",
+    item_source: str = "generated",
 ):
     default_seconds = GameConfig().market_seconds
     cfg = GameConfig(
