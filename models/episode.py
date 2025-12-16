@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from constants import TEAM_A, TEAM_B
 from sim.rng import RNG
 from models.market import Market
 from models.team import Team
@@ -9,6 +10,7 @@ from sim.pricing import negotiate
 from sim.scoring import compute_team_totals, golden_gavel
 from ai.strategy_value import ValueHunterStrategy
 from ai.strategy_risk import RiskAverseStrategy
+from models.contestant import Contestant
 
 @dataclass
 class Episode:
@@ -30,9 +32,38 @@ class Episode:
 
         # Teams
         x0,y0,w,h = self.play_rect
+        red_duo = [
+            Contestant("Harriet", "Team Captain", confidence=0.78, taste=0.64),
+            Contestant("Louie", "Spotter", confidence=0.62, taste=0.72),
+        ]
+        blue_duo = [
+            Contestant("Amira", "Strategist", confidence=0.70, taste=0.80),
+            Contestant("Felix", "Dealer", confidence=0.58, taste=0.66),
+        ]
+
         self.teams = [
-            Team("Team A", (220,120,120), self.starting_budget, self.starting_budget, ValueHunterStrategy(), exp_a, x0+90, y0+h/2),
-            Team("Team B", (120,200,150), self.starting_budget, self.starting_budget, RiskAverseStrategy(), exp_b, x0+w-120, y0+h/2),
+            Team(
+                "Red Team",
+                TEAM_A,
+                self.starting_budget,
+                self.starting_budget,
+                ValueHunterStrategy(),
+                exp_a,
+                red_duo,
+                x0 + 90,
+                y0 + h / 2,
+            ),
+            Team(
+                "Blue Team",
+                TEAM_B,
+                self.starting_budget,
+                self.starting_budget,
+                RiskAverseStrategy(),
+                exp_b,
+                blue_duo,
+                x0 + w - 120,
+                y0 + h / 2,
+            ),
         ]
 
         self.appraisal_done = False
@@ -72,7 +103,15 @@ class Episode:
                 item = team.strategy.decide_purchase(self.market, team, target, self.rng)
                 if item:
                     # negotiate (expert helps)
-                    did, disc = negotiate(item, self.rng, target.discount_chance, target.discount_min, target.discount_max, expert_bonus=team.expert.negotiation_bonus)
+                    neg_bonus = team.negotiation_bonus(team.expert.negotiation_bonus)
+                    did, disc = negotiate(
+                        item,
+                        self.rng,
+                        target.discount_chance,
+                        target.discount_min,
+                        target.discount_max,
+                        expert_bonus=neg_bonus,
+                    )
                     item.was_negotiated = did
                     if item.shop_price <= team.budget_left:
                         target.items.remove(item)

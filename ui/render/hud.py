@@ -27,6 +27,8 @@ def render_hud(surface, cfg, episode, phase, time_left=None, speed: float = 1.0)
     y += 8
     for team in episode.teams:
         draw_text(surface, team.name, x, y, font, team.color); y += 20
+        draw_text(surface, team.role_blurb(), x, y, small, team.color); y += 18
+        draw_text(surface, f"Confidence: {team.average_confidence:.2f}  Taste: {team.average_taste:.2f}", x, y, small, MUTED); y += 18
         draw_text(surface, f"Budget left: ${team.budget_left:0.0f}", x, y, small, MUTED); y += 18
 
         team_items = [i for i in team.items_bought if not i.is_expert_pick]
