@@ -247,16 +247,21 @@ class Episode:
         self.auction_done = False
         self.last_sold = None
 
+    def finalize_auction_sale(self, lot: AuctionLot, sale_price: float):
+        """Record the result of an auction lot without advancing RNG twice."""
+        lot.item.auction_price = sale_price
+        self.last_sold = lot
+        self.auction_cursor += 1
+        if self.auction_cursor >= len(self.auction_queue):
+            self.auction_done = True
+
     def step_auction(self):
         if self.auction_cursor >= len(self.auction_queue):
             self.auction_done = True
             return
         lot = self.auction_queue[self.auction_cursor]
-        lot.item.auction_price = self.auction_house.sell(lot.item, self.rng)
-        self.last_sold = lot
-        self.auction_cursor += 1
-        if self.auction_cursor >= len(self.auction_queue):
-            self.auction_done = True
+        sale_price = self.auction_house.sell(lot.item, self.rng)
+        self.finalize_auction_sale(lot, sale_price)
 
     def compute_results(self):
         for team in self.teams:
