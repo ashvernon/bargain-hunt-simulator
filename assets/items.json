@@ -29,7 +29,7 @@
       "glass": "beveled",
       "notes": "Keeps good time"
     },
-    "image": null
+    "image": "assets/Vintage mantle clock.png"
   },
   {
     "name": "Mid-century teak side table",
@@ -44,7 +44,7 @@
       "dimensions": "55 x 45 x 45 cm",
       "maker": "unknown"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Art deco cocktail shaker",
@@ -59,7 +59,7 @@
       "material": "chrome",
       "height": "25 cm"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Vintage tin robot toy",
@@ -74,7 +74,7 @@
       "mechanism": "wind-up",
       "height": "18 cm"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Sterling silver tea set",
@@ -89,7 +89,7 @@
       "pieces": "teapot, coffee pot, sugar, creamer",
       "weight": "1.2 kg total"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "First edition adventure novel",
@@ -104,7 +104,7 @@
       "binding": "hardcover",
       "signature": "author-signed on title page"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Studio glass art bowl",
@@ -119,7 +119,7 @@
       "diameter": "32 cm",
       "signature": "etched artist mark"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Engraved brass telescope",
@@ -134,7 +134,7 @@
       "length": "45 cm extended",
       "case": "original leather case"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Hand-loomed kilim runner",
@@ -149,7 +149,7 @@
       "dimensions": "260 x 75 cm",
       "origin": "Anatolia"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Early 20th century oil landscape",
@@ -164,7 +164,7 @@
       "frame": "giltwood",
       "size": "40 x 55 cm"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   },
   {
     "name": "Industrial machinist's chest",
@@ -179,6 +179,6 @@
       "drawers": "7",
       "liner": "green felt"
     },
-    "image": null
+    "image": "assets/Antique ceramic vase with floral design.png"
   }
 ]
