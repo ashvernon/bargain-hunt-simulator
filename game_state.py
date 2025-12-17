@@ -35,6 +35,7 @@ class GameState:
             items_per_team=cfg.items_per_team,
             starting_budget=cfg.starting_budget,
             expert_min_budget=cfg.expert_min_budget,
+            cfg=cfg,
         )
         self.episode.setup()
         self.episode.time_scale = self.time_scale

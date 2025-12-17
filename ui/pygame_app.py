@@ -10,11 +10,14 @@ def run_app(
     episode_idx: int = 1,
     market_seconds: Optional[float] = None,
     item_source: str = "generated",
+    regen_experts: bool = False,
 ):
     default_seconds = GameConfig().market_seconds
     cfg = GameConfig(
         market_seconds=market_seconds if market_seconds is not None else default_seconds,
         item_source=item_source,
+        expert_regen_allowed=regen_experts,
+        expert_force_regen=regen_experts,
     )
     pygame.init()
     screen = pygame.display.set_mode((cfg.window_w, cfg.window_h))

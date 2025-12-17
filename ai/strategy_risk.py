@@ -68,6 +68,8 @@ class RiskAverseStrategy(Strategy):
             margin = est - rec.shop_price
             target_margin = 6.0 - team.average_confidence
             target_margin -= team.style_affinity(rec)
+            if team.expert:
+                target_margin = team.expert.adjust_target_margin(target_margin)
             if margin > max(3.5, target_margin):
                 score = margin + rec.condition
                 if score > best_score:

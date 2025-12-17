@@ -25,6 +25,11 @@ def parse_args():
         default="generated",
         help="Choose which dataset to load for items (generated includes images)",
     )
+    parser.add_argument(
+        "--regen-experts",
+        action="store_true",
+        help="Regenerate the expert roster file (dev-only)",
+    )
     return parser.parse_args()
 
 
@@ -36,4 +41,5 @@ if __name__ == "__main__":
         episode_idx=args.episode,
         market_seconds=market_seconds,
         item_source=args.item_source,
+        regen_experts=args.regen_experts,
     )
