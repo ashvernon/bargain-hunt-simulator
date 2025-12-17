@@ -26,7 +26,7 @@ class Team:
 
     last_action: str = ""
     spend_plan = None
-    stall_cooldowns: dict[int, int] = field(default_factory=dict)
+    stall_cooldowns: dict[int, float] = field(default_factory=dict)
 
     @property
     def average_confidence(self) -> float:
