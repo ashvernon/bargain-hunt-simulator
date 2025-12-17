@@ -81,7 +81,7 @@ class ExpertAssignmentScreen(Screen):
             draw_text(surface, f"{team.name}", x, ty, self.title_font, team.color); ty += 26
             draw_text(surface, f"Expert: {team.expert.name}", x, ty, self.body_font, GOLD); ty += 22
             draw_text(surface, f"Negotiation boost: {team.expert.negotiation_bonus*100:.0f}%", x, ty, self.small, MUTED); ty += 18
-            fav = ", ".join(team.expert.bias.keys()) if getattr(team.expert, \"bias\", None) else "All categories"
+            fav = ", ".join(team.expert.bias.keys()) if getattr(team.expert, "bias", None) else "All categories"
             draw_text(surface, f"Specialty: {fav}", x, ty, self.small, MUTED)
 
         y += spacing * len(self.episode.teams) + 10
