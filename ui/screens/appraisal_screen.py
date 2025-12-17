@@ -19,10 +19,14 @@ class AppraisalScreen(Screen):
         y = 58
         for team in self.episode.teams:
             draw_text(surface, f"{team.name} (Expert: {team.expert.name})", 24, y, self.small, team.color); y += 20
-            for it in team.items_bought:
-                tag = " [EXPERT]" if it.is_expert_pick else ""
-                draw_text(surface, f"{it.name}{tag}", 30, y, self.small, TEXT); y += 16
+            for it in team.team_items:
+                draw_text(surface, f"{it.name}", 30, y, self.small, TEXT); y += 16
                 draw_text(surface, f"Paid ${it.shop_price:.0f}  |  Appraised ${it.appraised_value:.0f}", 50, y, self.small, MUTED); y += 18
+            if getattr(team, "expert_pick_item", None):
+                draw_text(surface, "[EXPERT PICK] Hidden until reveal", 30, y, self.small, TEXT); y += 16
+                draw_text(surface, "Expert appraisal ready (details sealed)", 50, y, self.small, MUTED); y += 18
+            elif getattr(team, "expert_pick_budget", 0) >= 1.0:
+                draw_text(surface, f"Expert shopping with ${team.expert_pick_budget:0.0f}", 30, y, self.small, MUTED); y += 18
             y += 12
 
         render_hud(

@@ -8,7 +8,9 @@ from ui.screens.intro_screens import (
     ExpertAssignmentScreen,
     MarketSendoffScreen,
 )
-from ui.screens.expert_decision_screen import ExpertDecisionScreen
+from ui.screens.expert_budget_screen import ExpertBudgetScreen
+from ui.screens.expert_shopping_screen import ExpertShoppingScreen
+from ui.screens.expert_reveal_screen import ExpertRevealScreen
 from ui.screens.appraisal_screen import AppraisalScreen
 from ui.screens.auction_screen import AuctionScreen
 from ui.screens.results_screen import ResultsScreen
@@ -32,12 +34,13 @@ class GameState:
             play_rect=play_rect,
             items_per_team=cfg.items_per_team,
             starting_budget=cfg.starting_budget,
+            expert_min_budget=cfg.expert_min_budget,
         )
         self.episode.setup()
         self.episode.time_scale = self.time_scale
 
         self.market_time_left = cfg.market_seconds
-        self.expert_decision_started = False
+        self.expert_budget_reserved = False
 
         self.screens = {
             "INTRO_HOST": HostWelcomeScreen(cfg),
@@ -45,12 +48,17 @@ class GameState:
             "INTRO_EXPERTS": ExpertAssignmentScreen(cfg, self.episode),
             "INTRO_MARKET": MarketSendoffScreen(cfg),
             "MARKET": MarketScreen(cfg, self.episode),
-            "EXPERT_DECISION": ExpertDecisionScreen(cfg, self.episode),
+            "EXPERT_HANDOFF": ExpertBudgetScreen(cfg, self.episode),
+            "EXPERT_SHOPPING": ExpertShoppingScreen(cfg, self.episode),
+            "EXPERT_REVEAL": ExpertRevealScreen(cfg, self.episode),
             "APPRAISAL": AppraisalScreen(cfg, self.episode),
-            "AUCTION": AuctionScreen(cfg, self.episode),
+            "AUCTION_TEAM": AuctionScreen(cfg, self.episode),
+            "AUCTION_EXPERT": AuctionScreen(cfg, self.episode),
             "RESULTS": ResultsScreen(cfg, self.episode),
         }
         self.screen = self.screens[self.phase]
+        if hasattr(self.screen, "reset"):
+            self.screen.reset()
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -80,12 +88,11 @@ class GameState:
 
             if self.market_time_left <= 0 or self._market_shopping_done():
                 self.market_time_left = min(self.market_time_left, 0)
-                # expert leftover purchase
-                self._enter_expert_decision_phase()
+                self._enter_expert_handoff_phase()
 
-        elif self.phase == "EXPERT_DECISION":
+        elif self.phase in ("EXPERT_HANDOFF", "EXPERT_SHOPPING"):
             self.screen.update(dt)
-            if self.episode.expert_purchases_done():
+            if getattr(self.screen, "is_done", False):
                 self._advance_phase()
 
         elif self.phase == "APPRAISAL":
@@ -93,9 +100,14 @@ class GameState:
                 self.episode.start_appraisal()
             self._advance_phase()
 
-        elif self.phase == "AUCTION":
+        elif self.phase in ("AUCTION_TEAM", "AUCTION_EXPERT"):
             self.screen.update(dt)
             if self.episode.auction_done:
+                self._advance_phase()
+
+        elif self.phase == "EXPERT_REVEAL":
+            self.screen.update(dt)
+            if getattr(self.screen, "decisions_complete", lambda: False)():
                 self._advance_phase()
 
         elif self.phase == "RESULTS":
@@ -108,46 +120,53 @@ class GameState:
         if self.phase == "MARKET":
             if force:
                 self.market_time_left = 0
-            self._enter_expert_decision_phase()
+            self._enter_expert_handoff_phase()
             return
-        elif self.phase == "EXPERT_DECISION":
-            if not self.episode.expert_purchases_done():
-                return
+        elif self.phase == "EXPERT_HANDOFF":
+            self._enter_expert_shopping_phase()
+            return
+        elif self.phase == "EXPERT_SHOPPING":
             self.phase = "APPRAISAL"
         elif self.phase == "APPRAISAL":
-            self.phase = "AUCTION"
-            self.episode.start_auction()
-        elif self.phase == "AUCTION":
+            self.phase = "AUCTION_TEAM"
+            self.episode.start_team_auction()
+            self.screens["AUCTION_TEAM"].reset_for_new_queue()
+        elif self.phase == "AUCTION_TEAM":
+            self.phase = "EXPERT_REVEAL"
+        elif self.phase == "EXPERT_REVEAL":
+            if self.episode.has_included_expert_items():
+                self.phase = "AUCTION_EXPERT"
+                self.episode.start_expert_auction()
+                self.screens["AUCTION_EXPERT"].reset_for_new_queue()
+            else:
+                self.phase = "RESULTS"
+                self.episode.compute_results()
+        elif self.phase == "AUCTION_EXPERT":
             self.phase = "RESULTS"
             self.episode.compute_results()
 
         self.screen = self.screens[self.phase]
+        if hasattr(self.screen, "reset"):
+            self.screen.reset()
 
-    def _enter_expert_decision_phase(self):
-        if not self.expert_decision_started:
-            self.episode.finish_market_expert_leftover_purchase()
-            self.expert_decision_started = True
-        self.phase = "EXPERT_DECISION"
+    def _enter_expert_handoff_phase(self):
+        if not self.expert_budget_reserved:
+            self.episode.reserve_expert_budget()
+            self.expert_budget_reserved = True
+        self.phase = "EXPERT_HANDOFF"
         self.screen = self.screens[self.phase]
-        # reset the decision cursor now that new proposals exist
-        if hasattr(self.screen, "cursor"):
-            self.screen.cursor = 0
-            if hasattr(self.screen, "_sync_cursor"):
-                self.screen._sync_cursor()
+        if hasattr(self.screen, "reset"):
+            self.screen.reset()
+
+    def _enter_expert_shopping_phase(self):
+        self.episode.prepare_expert_picks()
+        self.phase = "EXPERT_SHOPPING"
+        self.screen = self.screens[self.phase]
+        if hasattr(self.screen, "reset"):
+            self.screen.reset()
 
     def _market_shopping_done(self) -> bool:
-        remaining = list(self.episode.market.all_remaining_items())
-        if not remaining:
-            return True
-
-        min_price = min(it.shop_price for it in remaining)
-        teams_complete = []
-        for team in self.episode.teams:
-            team_items = [i for i in team.items_bought if not i.is_expert_pick]
-            filled = len(team_items) >= self.cfg.items_per_team
-            broke = team.budget_left < min_price
-            teams_complete.append(filled or broke)
-        return all(teams_complete)
+        return all(len(team.team_items) >= self.cfg.items_per_team for team in self.episode.teams)
 
     def _toggle_speed(self):
         speeds = [2.0, 10.0, 20.0]

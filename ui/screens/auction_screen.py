@@ -42,6 +42,21 @@ class AuctionScreen(Screen):
         ]
         self.hammer_lines = ["Going once...", "Going twice...", "Final call..."]
 
+    def reset_for_new_queue(self):
+        self.stage = "idle"
+        self.stage_timer = 0.0
+        self.display_price = 0.0
+        self.current_lot = None
+        self.pending_sale_price = 0.0
+        self.bid_history.clear()
+        self.bid_steps = []
+        self.bid_total_duration = 0.0
+        self.current_bid_idx = -1
+        self.active_bidder = None
+        self.bid_flash = 0.0
+        self.hammer_idx = 0
+        self.episode.last_sold = None
+
     def _shade(self, color, amount):
         return tuple(max(0, min(255, c + amount)) for c in color)
 
@@ -210,6 +225,7 @@ class AuctionScreen(Screen):
         mood = self.episode.auction_house.mood.upper()
         draw_text(surface, f"Auction House ({mood})", 24, 18, self.big, TEXT)
         draw_text(surface, "Real bidders on the floor — pace slowed for drama", 24, 52, self.small, MUTED)
+        draw_text(surface, self.episode.auction_label, 24, 76, self.small, GOLD)
 
     def _render_stage(self, surface, rect):
         pygame.draw.rect(surface, CANVAS, rect, border_radius=18)
@@ -365,11 +381,12 @@ class AuctionScreen(Screen):
             filled = bar_w * (cur / total)
             pygame.draw.rect(surface, ACCENT, (stage_rect.x, self.cfg.window_h - 30, filled, 12), border_radius=6)
 
+        phase_label = "AUCTION_TEAM" if self.episode.auction_stage == "team" else "AUCTION_EXPERT"
         render_hud(
             surface,
             self.cfg,
             self.episode,
-            "AUCTION",
+            phase_label,
             time_left=None,
             speed=getattr(self.episode, "time_scale", 1.0),
         )

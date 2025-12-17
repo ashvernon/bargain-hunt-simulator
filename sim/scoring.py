@@ -1,6 +1,7 @@
 def compute_team_totals(team):
-    team.spend = sum(i.shop_price for i in team.items_bought)
-    team.revenue = sum(i.auction_price for i in team.items_bought)
+    sale_items = team.included_items if hasattr(team, "included_items") else team.items_bought
+    team.spend = sum(i.shop_price for i in sale_items)
+    team.revenue = sum(i.auction_price for i in sale_items)
     team.profit = team.revenue - team.spend
 
 def golden_gavel(team) -> bool:
