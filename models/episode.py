@@ -115,8 +115,14 @@ class Episode:
                 team.stall_cooldowns[target.stall_id] = 3.0
                 target = None
 
+            forced_choice = False
             if target is None:
                 target = team.strategy.pick_target_stall(self.market, team, self.rng, self.items_per_team)
+                team.target_stall_id = target.stall_id if target else None
+
+            if target is None:
+                target = self._pick_desperation_stall(team)
+                forced_choice = target is not None
                 team.target_stall_id = target.stall_id if target else None
 
             if not target:
@@ -130,26 +136,11 @@ class Episode:
             # purchase if close enough
             if team.distance_to(tx, ty) <= buy_radius:
                 item = team.strategy.decide_purchase(self.market, team, target, self.rng, self.items_per_team)
+                if not item and forced_choice:
+                    item = self._pick_cheapest_affordable_item(target, team)
+
                 if item:
-                    # negotiate (expert helps)
-                    neg_bonus = team.negotiation_bonus(team.expert.negotiation_bonus)
-                    did, disc = negotiate(
-                        item,
-                        self.rng,
-                        target.discount_chance,
-                        target.discount_min,
-                        target.discount_max,
-                        expert_bonus=neg_bonus,
-                    )
-                    item.was_negotiated = did
-                    if item.shop_price <= team.budget_left:
-                        target.items.remove(item)
-                        team.items_bought.append(item)
-                        team.budget_left = round(team.budget_left - item.shop_price, 2)
-                        neg_txt = f" (-{disc*100:.0f}%)" if did else ""
-                        team.last_action = f"Bought: {item.name} ${item.shop_price:.0f}{neg_txt}"
-                    else:
-                        team.last_action = "Couldn't afford after negotiation"
+                    self._complete_purchase(team, target, item)
                 else:
                     team.stall_cooldowns[target.stall_id] = 3.0
                     team.target_stall_id = None
@@ -169,6 +160,58 @@ class Episode:
             ):
                 return True
         return False
+
+    def _pick_desperation_stall(self, team):
+        """Pick a stall when strategies deem everything unsuitable.
+
+        This keeps teams moving instead of getting stuck on "No stalls left".
+        We ignore spend plans and choose the cheapest stall that still has an
+        item the team can afford.
+        """
+        candidates = [
+            st
+            for st in self.market.stalls
+            if st.items and team.stall_cooldowns.get(st.stall_id, 0) <= 0
+        ]
+        if not candidates:
+            return None
+
+        best = None
+        best_price = float("inf")
+        for st in candidates:
+            cheapest = min((it.shop_price for it in st.items if it.shop_price <= team.budget_left), default=None)
+            if cheapest is not None and cheapest < best_price:
+                best_price, best = cheapest, st
+        return best
+
+    def _pick_cheapest_affordable_item(self, stall, team):
+        if not stall or not stall.items:
+            return None
+        affordable = [it for it in stall.items if it.shop_price <= team.budget_left]
+        if not affordable:
+            return None
+        return min(affordable, key=lambda it: it.shop_price)
+
+    def _complete_purchase(self, team, target, item):
+        # negotiate (expert helps)
+        neg_bonus = team.negotiation_bonus(team.expert.negotiation_bonus)
+        did, disc = negotiate(
+            item,
+            self.rng,
+            target.discount_chance,
+            target.discount_min,
+            target.discount_max,
+            expert_bonus=neg_bonus,
+        )
+        item.was_negotiated = did
+        if item.shop_price <= team.budget_left:
+            target.items.remove(item)
+            team.items_bought.append(item)
+            team.budget_left = round(team.budget_left - item.shop_price, 2)
+            neg_txt = f" (-{disc*100:.0f}%)" if did else ""
+            team.last_action = f"Bought: {item.name} ${item.shop_price:.0f}{neg_txt}"
+        else:
+            team.last_action = "Couldn't afford after negotiation"
 
     def _move_towards(self, team, tx, ty, dt, speed):
         dx, dy = tx - team.x, ty - team.y
