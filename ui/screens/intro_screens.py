@@ -1,7 +1,7 @@
 import pygame
 from ui.screens.screen_base import Screen
 from ui.render.draw import draw_panel, draw_text
-from constants import BG, TEXT, MUTED, ACCENT, GOLD
+from constants import BG, TEXT, MUTED, ACCENT, GOLD, CANVAS, PANEL_EDGE, PANEL
 
 
 def _render_intro_panel(surface, cfg, title, subtitle, footer=True):
@@ -72,20 +72,58 @@ class ExpertAssignmentScreen(Screen):
         self.title_font = pygame.font.SysFont(None, 28)
         self.body_font = pygame.font.SysFont(None, 22)
         self.small = pygame.font.SysFont(None, 18)
+        self.stat_font = pygame.font.SysFont(None, 20)
+        self.badge_font = pygame.font.SysFont(None, 16)
 
     def render(self, surface):
         x, y = _render_intro_panel(surface, self.cfg, "Expert assignments", "Each team is paired with a specialist for the hunt.")
-        spacing = 70
-        for idx, team in enumerate(self.episode.teams):
-            ty = y + idx * spacing
-            draw_text(surface, f"{team.name}", x, ty, self.title_font, team.color); ty += 26
-            draw_text(surface, f"Expert: {team.expert.name}", x, ty, self.body_font, GOLD); ty += 22
-            draw_text(surface, f"Negotiation boost: {team.expert.negotiation_bonus*100:.0f}%", x, ty, self.small, MUTED); ty += 18
-            fav = ", ".join(team.expert.bias.keys()) if getattr(team.expert, "bias", None) else "All categories"
-            draw_text(surface, f"Specialty: {fav}", x, ty, self.small, MUTED)
+        cards_per_row = 2 if len(self.episode.teams) > 1 else 1
+        gutter = self.cfg.margin
+        content_width = self.cfg.window_w - self.cfg.margin * 6
+        card_width = (content_width - gutter * (cards_per_row - 1)) // cards_per_row
+        card_height = 170
+        card_padding = self.cfg.margin
 
-        y += spacing * len(self.episode.teams) + 10
-        draw_text(surface, "Lean on your expert for valuations and deal-making.", x, y, self.body_font, TEXT)
+        for idx, team in enumerate(self.episode.teams):
+            row = idx // cards_per_row
+            col = idx % cards_per_row
+            card_x = x + col * (card_width + gutter)
+            card_y = y + row * (card_height + gutter)
+
+            pygame.draw.rect(surface, CANVAS, (card_x, card_y, card_width, card_height), border_radius=10)
+            pygame.draw.rect(surface, PANEL_EDGE, (card_x, card_y, card_width, card_height), width=2, border_radius=10)
+            pygame.draw.rect(surface, team.color, (card_x, card_y, card_width, 8), border_radius=10)
+
+            inner_x = card_x + card_padding
+            inner_y = card_y + card_padding
+            draw_text(surface, f"{team.name}", inner_x, inner_y, self.title_font, team.color)
+
+            portrait_size = 70
+            portrait_rect = pygame.Rect(inner_x, inner_y + 18, portrait_size, portrait_size)
+            pygame.draw.rect(surface, PANEL, portrait_rect, border_radius=8)
+            pygame.draw.rect(surface, PANEL_EDGE, portrait_rect, width=2, border_radius=8)
+            placeholder_label = "Image"
+            label_img = self.badge_font.render(placeholder_label, True, MUTED)
+            label_pos = (
+                portrait_rect.x + (portrait_size - label_img.get_width()) // 2,
+                portrait_rect.y + (portrait_size - label_img.get_height()) // 2,
+            )
+            surface.blit(label_img, label_pos)
+
+            info_x = portrait_rect.right + card_padding
+            info_y = inner_y + 14
+            draw_text(surface, f"Expert: {team.expert.name}", info_x, info_y, self.body_font, GOLD); info_y += 26
+            draw_text(surface, f"Negotiation boost: {team.expert.negotiation_bonus*100:.0f}%", info_x, info_y, self.stat_font, ACCENT); info_y += 22
+            fav = ", ".join(team.expert.bias.keys()) if getattr(team.expert, "bias", None) else "All categories"
+            draw_text(surface, f"Specialty: {fav}", info_x, info_y, self.stat_font, MUTED)
+
+            flavor_y = portrait_rect.bottom + card_padding // 2
+            draw_text(surface, "Lean on your expert for", inner_x, flavor_y, self.small, TEXT); flavor_y += 18
+            draw_text(surface, "valuations and deal-making.", inner_x, flavor_y, self.small, TEXT)
+
+        rows = (len(self.episode.teams) + cards_per_row - 1) // cards_per_row
+        y += rows * (card_height + gutter) + gutter
+        draw_text(surface, "Each expert is ready with tips and quick appraisals.", x, y, self.body_font, TEXT)
 
 
 class MarketSendoffScreen(Screen):
