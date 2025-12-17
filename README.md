@@ -12,7 +12,7 @@ An AI-driven mini-simulation of a *Bargain Hunt*-style episode. Two teams roam a
 ## Run
 1. (Optional) Create a virtual environment.
 2. Install dependencies:
-   - `pip install pygame moviepy`
+   - `pip install -r requirements.txt`
 3. Launch the simulator:
    - `python main.py`
 
