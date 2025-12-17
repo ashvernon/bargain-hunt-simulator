@@ -119,7 +119,7 @@ class ExpertRevealScreen(Screen):
     def _rapport_signal(self, team) -> float:
         # Confidence in the expert + track record of accuracy.
         trust = (team.average_confidence - 0.5) * 0.6
-        expert_trust = (team.expert.accuracy - 0.75) * 0.8
+        expert_trust = (team.expert.appraisal_accuracy - 0.75) * 0.8
         return max(-0.4, min(0.6, trust + expert_trust))
 
     def _liking_signal(self, team, pick) -> float:
