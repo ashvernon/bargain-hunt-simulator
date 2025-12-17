@@ -91,9 +91,11 @@ class Episode:
         for team in self.teams:
             # decay stall cooldowns
             for sid in list(team.stall_cooldowns.keys()):
-                team.stall_cooldowns[sid] -= 1
-                if team.stall_cooldowns[sid] <= 0:
+                remaining = team.stall_cooldowns[sid] - dt
+                if remaining <= 0:
                     del team.stall_cooldowns[sid]
+                else:
+                    team.stall_cooldowns[sid] = remaining
 
             if not team.spend_plan:
                 team.spend_plan = team.strategy.choose_spend_plan(self.rng)
@@ -110,7 +112,7 @@ class Episode:
                     target = None
 
             if target and not self._stall_has_affordable_item(team, target):
-                team.stall_cooldowns[target.stall_id] = 3
+                team.stall_cooldowns[target.stall_id] = 3.0
                 target = None
 
             if target is None:
@@ -149,7 +151,7 @@ class Episode:
                     else:
                         team.last_action = "Couldn't afford after negotiation"
                 else:
-                    team.stall_cooldowns[target.stall_id] = 3
+                    team.stall_cooldowns[target.stall_id] = 3.0
                     team.target_stall_id = None
                     team.last_action = "Expert says: keep looking"
 
