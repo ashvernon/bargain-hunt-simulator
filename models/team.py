@@ -31,6 +31,13 @@ class Team:
     last_action: str = ""
     spend_plan = None
     stall_cooldowns: dict[int, float] = field(default_factory=dict)
+    market_state: str = "BROWSING"
+    state_timer: float = 0.0
+    decision_context: dict | None = None
+    considered_items: list[dict] = field(default_factory=list)
+    time_spent_considering: float = 0.0
+    time_spent_consulting: float = 0.0
+    revisit_probability: float = 0.0
 
     @property
     def average_confidence(self) -> float:
