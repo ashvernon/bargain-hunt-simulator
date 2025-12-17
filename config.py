@@ -9,6 +9,7 @@ class GameConfig:
     show_splash_video: bool = True
     splash_video_max_seconds: float = 8.0
     splash_video_path: str = "assets/video/into_vid.mp4"
+    show_host_intro: bool = True
 
     # Market phase
     # Default to an hour-long shopping period

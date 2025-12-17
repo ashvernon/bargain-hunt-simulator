@@ -2,6 +2,12 @@ import pygame
 from config import GameConfig
 from sim.item_factory import configure_item_factory
 from ui.screens.market_screen import MarketScreen
+from ui.screens.intro_screens import (
+    HostWelcomeScreen,
+    ContestantIntroScreen,
+    ExpertAssignmentScreen,
+    MarketSendoffScreen,
+)
 from ui.screens.expert_decision_screen import ExpertDecisionScreen
 from ui.screens.appraisal_screen import AppraisalScreen
 from ui.screens.auction_screen import AuctionScreen
@@ -10,7 +16,8 @@ from ui.screens.results_screen import ResultsScreen
 class GameState:
     def __init__(self, cfg: GameConfig, seed: int, episode_idx: int):
         self.cfg = cfg
-        self.phase = "MARKET"
+        self.intro_enabled = cfg.show_host_intro
+        self.phase = "INTRO_HOST" if self.intro_enabled else "MARKET"
         self.time_scale = 1.0
         play_rect = (0, 0, cfg.window_w - cfg.hud_w, cfg.window_h)
 
@@ -33,6 +40,10 @@ class GameState:
         self.expert_decision_started = False
 
         self.screens = {
+            "INTRO_HOST": HostWelcomeScreen(cfg),
+            "INTRO_CONTESTANTS": ContestantIntroScreen(cfg, self.episode),
+            "INTRO_EXPERTS": ExpertAssignmentScreen(cfg, self.episode),
+            "INTRO_MARKET": MarketSendoffScreen(cfg),
             "MARKET": MarketScreen(cfg, self.episode),
             "EXPERT_DECISION": ExpertDecisionScreen(cfg, self.episode),
             "APPRAISAL": AppraisalScreen(cfg, self.episode),
@@ -43,7 +54,14 @@ class GameState:
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+            if self.phase.startswith("INTRO"):
+                if event.key == pygame.K_SPACE:
+                    self._skip_intro_sequence()
+                    return
+                if event.key in (pygame.K_RETURN, pygame.K_RIGHT):
+                    self._advance_phase()
+                    return
+            elif event.key == pygame.K_SPACE:
                 # Skip forward quickly
                 self._advance_phase(force=True)
             elif event.key == pygame.K_f:
@@ -51,6 +69,9 @@ class GameState:
         self.screen.handle_event(event)
 
     def update(self, dt: float):
+        if self.phase.startswith("INTRO"):
+            return
+
         dt *= self.time_scale
         if self.phase == "MARKET":
             self.market_time_left -= dt
@@ -81,6 +102,9 @@ class GameState:
             pass
 
     def _advance_phase(self, force=False):
+        if self.phase.startswith("INTRO"):
+            self._advance_intro_sequence()
+            return
         if self.phase == "MARKET":
             if force:
                 self.market_time_left = 0
@@ -137,3 +161,20 @@ class GameState:
     def render(self, screen):
         self.episode.time_scale = self.time_scale
         self.screen.render(screen)
+
+    def _advance_intro_sequence(self):
+        intro_flow = ["INTRO_HOST", "INTRO_CONTESTANTS", "INTRO_EXPERTS", "INTRO_MARKET"]
+        if self.phase not in intro_flow:
+            return
+        idx = intro_flow.index(self.phase)
+        if idx < len(intro_flow) - 1:
+            self.phase = intro_flow[idx + 1]
+        else:
+            self.phase = "MARKET"
+        self.screen = self.screens[self.phase]
+
+    def _skip_intro_sequence(self):
+        if not self.phase.startswith("INTRO"):
+            return
+        self.phase = "MARKET"
+        self.screen = self.screens[self.phase]
