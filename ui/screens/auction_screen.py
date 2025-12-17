@@ -30,6 +30,7 @@ class AuctionScreen(Screen):
         self.hammer_idx = 0
         self.sold_pause = 1.8
         self.image_cache: dict[str, pygame.Surface | None] = {}
+        self.assets_root = Path(__file__).resolve().parent.parent.parent
 
         self.bidder_names = [
             "Gallery rep",
@@ -105,20 +106,27 @@ class AuctionScreen(Screen):
             return self.episode.auction_queue[nxt_idx]
         return None
 
+    def _resolve_image_path(self, candidate: Path) -> Path | None:
+        """Resolve an image path whether the game is launched from the repo root or elsewhere."""
+        if candidate.is_absolute():
+            return candidate if candidate.exists() else None
+
+        for root in (Path.cwd(), self.assets_root):
+            path = root / candidate
+            if path.exists():
+                return path
+        return None
+
     def _get_item_image(self, item):
         if item.name in self.image_cache:
             return self.image_cache[item.name]
 
         # Prefer explicit image path if present on the item
         if getattr(item, "image_path", None):
-            candidate = Path(item.image_path)
-            if not candidate.is_absolute():
-                # Allow item.image_path to omit the assets/ prefix
-                if not candidate.exists():
-                    candidate = Path("assets") / candidate
-            if candidate.exists():
+            resolved = self._resolve_image_path(Path(item.image_path))
+            if resolved:
                 try:
-                    img = pygame.image.load(str(candidate)).convert_alpha()
+                    img = pygame.image.load(str(resolved)).convert_alpha()
                     self.image_cache[item.name] = img
                     return img
                 except pygame.error:
@@ -126,17 +134,19 @@ class AuctionScreen(Screen):
                     return None
 
         possible_names = [item.name, item.name.replace("/", "-")]
+        search_roots = [self.assets_root, Path.cwd()]
         for base in possible_names:
             for ext in (".png", ".jpg", ".jpeg"):
-                path = os.path.join("assets", f"{base}{ext}")
-                if os.path.exists(path):
-                    try:
-                        img = pygame.image.load(path).convert_alpha()
-                        self.image_cache[item.name] = img
-                        return img
-                    except pygame.error:
-                        self.image_cache[item.name] = None
-                        return None
+                for root in search_roots:
+                    path = root / "assets" / f"{base}{ext}"
+                    if path.exists():
+                        try:
+                            img = pygame.image.load(str(path)).convert_alpha()
+                            self.image_cache[item.name] = img
+                            return img
+                        except pygame.error:
+                            self.image_cache[item.name] = None
+                            return None
 
         self.image_cache[item.name] = None
         return None

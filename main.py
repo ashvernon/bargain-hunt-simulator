@@ -22,8 +22,8 @@ def parse_args():
     parser.add_argument(
         "--item-source",
         choices=["assets", "default", "generated", "combined"],
-        default="assets",
-        help="Choose which dataset to load for items",
+        default="generated",
+        help="Choose which dataset to load for items (generated includes images)",
     )
     return parser.parse_args()
 
