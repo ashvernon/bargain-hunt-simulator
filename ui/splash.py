@@ -2,7 +2,11 @@ import time
 from pathlib import Path
 
 import pygame
-from moviepy.editor import VideoFileClip
+
+try:
+    from moviepy.editor import VideoFileClip
+except ImportError:
+    VideoFileClip = None
 
 from config import GameConfig
 
@@ -11,6 +15,10 @@ def play_splash(screen: pygame.Surface, clock: pygame.time.Clock, cfg: GameConfi
     """Play the intro splash video and return False if the window is closed."""
     video_path = Path(cfg.splash_video_path)
     if not cfg.show_splash_video:
+        return True
+
+    if VideoFileClip is None:
+        print("moviepy is not installed; skipping intro video.")
         return True
 
     if not video_path.exists():
