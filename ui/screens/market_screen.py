@@ -2,7 +2,7 @@ import pygame
 from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
 from ui.render.draw import draw_text
-from constants import STALL, STALL_EDGE, TEXT, MUTED
+from constants import BG, STALL, STALL_EDGE, TEXT, MUTED
 
 class MarketScreen(Screen):
     def __init__(self, cfg, episode):
@@ -18,7 +18,7 @@ class MarketScreen(Screen):
     def render(self, surface):
         # play area
         play_w = self.cfg.window_w - self.cfg.hud_w
-        pygame.draw.rect(surface, (24,24,30), (0, 0, play_w, self.cfg.window_h))
+        pygame.draw.rect(surface, BG, (0, 0, play_w, self.cfg.window_h))
 
         # stalls
         for st in self.episode.market.stalls:
