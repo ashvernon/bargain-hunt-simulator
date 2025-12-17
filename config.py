@@ -16,6 +16,11 @@ class GameConfig:
     market_seconds: float = 60.0 * 60.0
     team_speed_px_s: float = 160.0
     buy_radius_px: float = 28.0
+    buy_decision_seconds_range: tuple[float, float] = (6.0, 12.0)
+    expert_chat_probability: float = 0.2
+    expert_chat_seconds_range: tuple[float, float] = (8.0, 18.0)
+    backtrack_probability: float = 0.22
+    market_pace_multiplier: float = 0.55
 
     # Item sourcing
     # Which dataset to use for generating items: default assets JSON, generated

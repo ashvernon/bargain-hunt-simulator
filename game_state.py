@@ -83,7 +83,7 @@ class GameState:
         dt *= self.time_scale
         if self.phase == "MARKET":
             self.market_time_left -= dt
-            self.episode.update_market_ai(dt, self.cfg.team_speed_px_s, self.cfg.buy_radius_px)
+            self.episode.update_market_ai(dt, cfg=self.cfg)
             self.screen.set_time_left(self.market_time_left)
 
             if self.market_time_left <= 0 or self._market_shopping_done():

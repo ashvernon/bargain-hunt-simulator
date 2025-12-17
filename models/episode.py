@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from constants import TEAM_A, TEAM_B
+from config import GameConfig
 from sim.rng import RNG
 from models.market import Market
 from models.team import Team
@@ -90,43 +91,53 @@ class Episode:
         self.auction_label = "Team items first"
         self.last_sold = None
 
-    def update_market_ai(self, dt: float, team_speed: float, buy_radius: float):
-        # Simple AI: pick a target stall; move; when close, attempt to buy.
+    def update_market_ai(
+        self,
+        dt: float,
+        team_speed: float | None = None,
+        buy_radius: float | None = None,
+        cfg: GameConfig | None = None,
+    ):
+        cfg = cfg or GameConfig()
+        team_speed = team_speed if team_speed is not None else cfg.team_speed_px_s
+        buy_radius = buy_radius if buy_radius is not None else cfg.buy_radius_px
+        paced_speed = team_speed * cfg.market_pace_multiplier
+
+        # Simple AI: pick a target stall; move; when close, deliberate then attempt to buy.
         for team in self.teams:
-            # decay stall cooldowns
-            for sid in list(team.stall_cooldowns.keys()):
-                remaining = team.stall_cooldowns[sid] - dt
-                if remaining <= 0:
-                    del team.stall_cooldowns[sid]
-                else:
-                    team.stall_cooldowns[sid] = remaining
+            self._init_market_behavior(team, cfg)
+            self._decay_stall_cooldowns(team, dt)
+            self._prune_considered_items(team)
 
             if not team.spend_plan:
                 team.spend_plan = team.strategy.choose_spend_plan(self.rng)
 
             if not team.can_buy_more(self.items_per_team):
                 team.last_action = "Done shopping"
+                team.market_state = "DONE"
+                continue
+
+            if team.market_state == "CONSULTING_EXPERT":
+                self._tick_consulting(team, dt)
+                continue
+
+            if team.market_state == "CONSIDERING_ITEM":
+                self._tick_considering(team, dt, cfg)
                 continue
 
             # choose target stall if none / empty
-            target = None
-            if team.target_stall_id is not None:
-                target = next((s for s in self.market.stalls if s.stall_id == team.target_stall_id), None)
-                if target and not target.items:
-                    target = None
+            target = self._find_stall_by_id(team.target_stall_id) if team.target_stall_id is not None else None
+            if target and not target.items:
+                target = None
 
             if target and not self._stall_has_affordable_item(team, target):
                 team.stall_cooldowns[target.stall_id] = 3.0
                 target = None
+                team.target_stall_id = None
 
             forced_choice = False
             if target is None:
-                target = team.strategy.pick_target_stall(self.market, team, self.rng, self.items_per_team)
-                team.target_stall_id = target.stall_id if target else None
-
-            if target is None:
-                target = self._pick_desperation_stall(team)
-                forced_choice = target is not None
+                target, forced_choice = self._choose_next_target(team, cfg)
                 team.target_stall_id = target.stall_id if target else None
 
             if not target:
@@ -134,21 +145,204 @@ class Episode:
                 continue
 
             tx, ty = target.center()
-            # move
-            self._move_towards(team, tx, ty, dt, team_speed)
+            # move at a relaxed pace
+            self._move_towards(team, tx, ty, dt, paced_speed)
+            team.last_action = f"Walking to {target.name}"
 
             # purchase if close enough
             if team.distance_to(tx, ty) <= buy_radius:
-                item = team.strategy.decide_purchase(self.market, team, target, self.rng, self.items_per_team)
+                item = None
+                if team.market_state == "BACKTRACKING" and team.decision_context:
+                    item = self._find_item_in_stall(target, team.decision_context.get("item_id"))
+                if not item:
+                    item = team.strategy.decide_purchase(self.market, team, target, self.rng, self.items_per_team)
                 if not item and forced_choice:
                     item = self._pick_cheapest_affordable_item(target, team)
 
                 if item:
-                    self._complete_purchase(team, target, item)
+                    self._begin_considering(team, target, item, cfg, forced_choice)
                 else:
                     team.stall_cooldowns[target.stall_id] = 3.0
                     team.target_stall_id = None
+                    team.market_state = "BROWSING"
                     team.last_action = "Expert says: keep looking"
+
+    def _init_market_behavior(self, team: Team, cfg: GameConfig):
+        if not team.market_state:
+            team.market_state = "BROWSING"
+        if not team.revisit_probability:
+            jitter = self.rng.uniform(0.85, 1.15)
+            team.revisit_probability = min(0.6, max(0.05, cfg.backtrack_probability * jitter))
+
+    def _decay_stall_cooldowns(self, team: Team, dt: float):
+        for sid in list(team.stall_cooldowns.keys()):
+            remaining = team.stall_cooldowns[sid] - dt
+            if remaining <= 0:
+                del team.stall_cooldowns[sid]
+            else:
+                team.stall_cooldowns[sid] = remaining
+
+    def _prune_considered_items(self, team: Team):
+        usable_budget = self._usable_budget(team)
+        kept = []
+        for entry in team.considered_items:
+            stall = self._find_stall_by_id(entry.get("stall_id"))
+            item = self._find_item_in_stall(stall, entry.get("item_id"))
+            if not stall or not item:
+                continue
+            if item.shop_price > usable_budget:
+                continue
+            kept.append(entry)
+        team.considered_items = kept[-6:]
+
+    def _tick_consulting(self, team: Team, dt: float):
+        team.state_timer -= dt
+        team.time_spent_consulting += dt
+        if team.state_timer > 0:
+            return
+        team.market_state = "CONSIDERING_ITEM"
+        decision_time = (team.decision_context or {}).get("decision_time", 1.0)
+        team.state_timer = max(0.5, decision_time)
+        stall = self._find_stall_by_id((team.decision_context or {}).get("stall_id"))
+        item = self._find_item_in_stall(stall, (team.decision_context or {}).get("item_id"))
+        team.last_action = f"Considering {item.name}" if item else "Refocusing after chat"
+
+    def _tick_considering(self, team: Team, dt: float, cfg: GameConfig):
+        team.state_timer -= dt
+        team.time_spent_considering += dt
+        if team.state_timer > 0:
+            return
+        self._finalize_decision(team, cfg)
+
+    def _begin_considering(self, team: Team, stall, item, cfg: GameConfig, forced_choice: bool):
+        decision_time = self.rng.uniform(*cfg.buy_decision_seconds_range)
+        team.decision_context = {
+            "stall_id": stall.stall_id,
+            "item_id": item.item_id,
+            "forced_choice": forced_choice,
+            "decision_time": decision_time,
+        }
+        chat_triggered = self.rng.random() < cfg.expert_chat_probability
+        if chat_triggered:
+            chat_time = self.rng.uniform(*cfg.expert_chat_seconds_range)
+            team.state_timer = chat_time
+            team.market_state = "CONSULTING_EXPERT"
+            team.last_action = f"Consulting expert about {item.name}"
+        else:
+            team.state_timer = decision_time
+            team.market_state = "CONSIDERING_ITEM"
+            team.last_action = f"Considering {item.name}"
+
+    def _finalize_decision(self, team: Team, cfg: GameConfig):
+        ctx = team.decision_context or {}
+        stall = self._find_stall_by_id(ctx.get("stall_id"))
+        item = self._find_item_in_stall(stall, ctx.get("item_id"))
+        forced_choice = ctx.get("forced_choice", False)
+        team.decision_context = None
+        team.state_timer = 0.0
+        if not stall or not item:
+            team.last_action = "Item moved; re-routing"
+            self._reset_to_browsing(team)
+            return
+
+        remaining_slots = self.items_per_team - team.team_item_count
+        if not self._is_purchase_still_valid(team, item, remaining_slots):
+            self._remember_item_for_backtrack(team, stall, item, forced_choice)
+            team.last_action = "Changed mind after thinking"
+            self._reset_to_browsing(team, stall)
+            return
+
+        should_revisit = not forced_choice and self.rng.random() < team.revisit_probability
+        if should_revisit:
+            self._remember_item_for_backtrack(team, stall, item, forced_choice)
+            team.last_action = f"Holding off on {item.name}"
+            self._reset_to_browsing(team, stall)
+            return
+
+        self._complete_purchase(team, stall, item)
+        self._remove_considered_entry(team, item)
+        team.market_state = "BROWSING"
+        team.target_stall_id = None
+
+    def _reset_to_browsing(self, team: Team, stall=None):
+        if stall:
+            team.stall_cooldowns[stall.stall_id] = 2.5
+        team.target_stall_id = None
+        team.market_state = "BROWSING"
+        team.decision_context = None
+        team.state_timer = 0.0
+
+    def _remember_item_for_backtrack(self, team: Team, stall, item, forced: bool):
+        if forced:
+            return
+        if any(entry.get("item_id") == item.item_id for entry in team.considered_items):
+            return
+        team.considered_items.append({"stall_id": stall.stall_id, "item_id": item.item_id})
+        if len(team.considered_items) > 6:
+            team.considered_items.pop(0)
+
+    def _remove_considered_entry(self, team: Team, item):
+        team.considered_items = [e for e in team.considered_items if e.get("item_id") != item.item_id]
+
+    def _choose_next_target(self, team: Team, cfg: GameConfig):
+        backtrack_target, entry = self._pick_backtrack_target(team)
+        if backtrack_target and entry:
+            team.market_state = "BACKTRACKING"
+            team.decision_context = {"stall_id": entry["stall_id"], "item_id": entry["item_id"]}
+            team.last_action = "Heading back to reconsider"
+            return backtrack_target, False
+
+        target = team.strategy.pick_target_stall(self.market, team, self.rng, self.items_per_team)
+        forced_choice = False
+        if target is None:
+            target = self._pick_desperation_stall(team)
+            forced_choice = target is not None
+
+        return target, forced_choice
+
+    def _pick_backtrack_target(self, team: Team):
+        if not team.considered_items or self.rng.random() > team.revisit_probability:
+            return None, None
+
+        # Try a handful of considered items before giving up
+        attempts = min(3, len(team.considered_items))
+        for _ in range(attempts):
+            entry = self.rng.choice(team.considered_items)
+            stall = self._find_stall_by_id(entry.get("stall_id"))
+            item = self._find_item_in_stall(stall, entry.get("item_id"))
+            if not stall or not item:
+                team.considered_items = [e for e in team.considered_items if e is not entry]
+                continue
+            if item.shop_price <= self._usable_budget(team):
+                return stall, entry
+        return None, None
+
+    def _find_stall_by_id(self, stall_id: int | None):
+        if stall_id is None:
+            return None
+        return next((s for s in self.market.stalls if s.stall_id == stall_id), None)
+
+    def _find_item_in_stall(self, stall, item_id: int | None):
+        if not stall or item_id is None:
+            return None
+        return next((it for it in stall.items if it.item_id == item_id), None)
+
+    def _is_purchase_still_valid(self, team: Team, item: Item, remaining_slots: int) -> bool:
+        usable_budget = self._usable_budget(team)
+        if item.shop_price > usable_budget:
+            return False
+
+        min_expected_price = min(12.0, self.market.min_item_price(default=12.0))
+        if team.spend_plan:
+            return team.spend_plan.allows_purchase(
+                price=item.shop_price,
+                purchase_index=team.team_item_count,
+                budget_start=team.budget_start,
+                budget_left=usable_budget,
+                remaining_slots=remaining_slots,
+                min_expected_price=min_expected_price,
+            )
+        return True
 
     def _reserved_expert_budget(self, team) -> float:
         """Minimum cash that must be held back for the expert pick."""
