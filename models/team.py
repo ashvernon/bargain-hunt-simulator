@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from models.contestant import Contestant
+from models.contestant import Contestant, RelationshipType
 from typing import List
 
 @dataclass
@@ -16,6 +16,9 @@ class Team:
     # Movement
     x: float
     y: float
+
+    relationship: str | None = None
+    relationship_type: RelationshipType | None = None
     target_stall_id: int | None = None
 
     # Purchases and outcomes
