@@ -34,3 +34,14 @@ def test_load_jsonl_sets_image_and_attributes(tmp_path: Path):
 
     item = template.instantiate(item_id=99)
     assert item.image_path == "assets/items/generated/it_test.png"
+
+
+def test_load_default_returns_templates_with_images():
+    db = ItemDatabase.load_default()
+
+    assert db.templates, "default asset database should not be empty"
+    template = db.templates[0]
+
+    item = template.instantiate(item_id=5)
+    assert item.name
+    assert item.image_path == template.image
