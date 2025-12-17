@@ -2,7 +2,7 @@ import pygame
 from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
 from ui.render.draw import draw_text
-from constants import TEXT, MUTED, GOOD, BAD
+from constants import BG, TEXT, MUTED, GOOD, BAD
 
 
 class ExpertDecisionScreen(Screen):
@@ -50,7 +50,7 @@ class ExpertDecisionScreen(Screen):
 
     def render(self, surface):
         play_w = self.cfg.window_w - self.cfg.hud_w
-        pygame.draw.rect(surface, (18, 20, 28), (0, 0, play_w, self.cfg.window_h))
+        pygame.draw.rect(surface, BG, (0, 0, play_w, self.cfg.window_h))
         draw_text(surface, "Expert Leftover Purchases", 24, 18, self.font, TEXT)
 
         if not getattr(self.episode, "expert_purchase_events", None):

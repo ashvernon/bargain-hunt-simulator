@@ -2,7 +2,7 @@ import pygame
 from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
 from ui.render.draw import draw_text
-from constants import TEXT, MUTED, GOLD, GOOD, BAD
+from constants import BG, CANVAS, TEXT, MUTED, GOLD, GOOD, BAD
 
 class ResultsScreen(Screen):
     def __init__(self, cfg, episode):
@@ -15,11 +15,15 @@ class ResultsScreen(Screen):
     def _shade(self, color, amount):
         return tuple(max(0, min(255, c + amount)) for c in color)
 
+    def _tint_with_canvas(self, color, strength: float = 0.55):
+        base = CANVAS
+        return tuple(int(base[i] * (1 - strength) + color[i] * strength) for i in range(3))
+
     def _draw_team_card(self, surface, team, x, y, width):
         item_lines = len(team.items_bought)
         card_height = 70 + item_lines * 34
-        bg = self._shade(team.color, 110)
-        outline = self._shade(team.color, -30)
+        bg = self._tint_with_canvas(team.color, 0.58)
+        outline = self._shade(team.color, -26)
 
         card_rect = pygame.Rect(x, y, width, card_height)
         pygame.draw.rect(surface, bg, card_rect, border_radius=10)
@@ -60,14 +64,14 @@ class ResultsScreen(Screen):
 
     def render(self, surface):
         play_w = self.cfg.window_w - self.cfg.hud_w
-        pygame.draw.rect(surface, (16,22,18), (0, 0, play_w, self.cfg.window_h))
+        pygame.draw.rect(surface, BG, (0, 0, play_w, self.cfg.window_h))
 
         draw_text(surface, "Results", 24, 18, self.font, TEXT)
         y = 58
 
         winner = self.episode.winner
         banner_rect = pygame.Rect(18, y, play_w - 36, 54)
-        pygame.draw.rect(surface, self._shade(winner.color, 90), banner_rect, border_radius=12)
+        pygame.draw.rect(surface, self._tint_with_canvas(winner.color, 0.68), banner_rect, border_radius=12)
         pygame.draw.rect(surface, self._shade(winner.color, -20), banner_rect, width=2, border_radius=12)
         draw_text(surface, f"Winner: {winner.name}", 32, y + 10, self.font, TEXT)
         draw_text(surface, f"Total Profit {winner.profit:+.0f}", 32, y + 34, self.small, GOOD if winner.profit >= 0 else BAD)

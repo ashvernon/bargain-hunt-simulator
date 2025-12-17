@@ -4,7 +4,7 @@ import pygame
 from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
 from ui.render.draw import draw_text, draw_panel
-from constants import TEXT, MUTED, GOOD, BAD, GOLD, ACCENT, INK, CANVAS
+from constants import BG, TEXT, MUTED, GOOD, BAD, GOLD, ACCENT, INK, CANVAS, PANEL, PANEL_EDGE
 
 
 class AuctionScreen(Screen):
@@ -40,6 +40,12 @@ class AuctionScreen(Screen):
             "Museum intern",
         ]
         self.hammer_lines = ["Going once...", "Going twice...", "Final call..."]
+
+    def _shade(self, color, amount):
+        return tuple(max(0, min(255, c + amount)) for c in color)
+
+    def _blend(self, base, tint, weight: float):
+        return tuple(int(base[i] * (1 - weight) + tint[i] * weight) for i in range(3))
 
     def _prepare_next_lot(self):
         if self.episode.auction_cursor >= len(self.episode.auction_queue):
@@ -198,10 +204,10 @@ class AuctionScreen(Screen):
     def _render_stage(self, surface, rect):
         pygame.draw.rect(surface, CANVAS, rect, border_radius=18)
         floor_rect = (rect[0], rect[1] + rect[3] - 120, rect[2], 120)
-        pygame.draw.rect(surface, (28, 38, 76), floor_rect, border_radius=16)
+        pygame.draw.rect(surface, self._shade(CANVAS, -10), floor_rect, border_radius=16)
 
         podium = pygame.Rect(rect[0] + rect[2] * 0.45, rect[1] + 14, 120, 64)
-        pygame.draw.rect(surface, (70, 100, 170), podium, border_radius=12)
+        pygame.draw.rect(surface, self._blend(CANVAS, ACCENT, 0.6), podium, border_radius=12)
         draw_text(surface, "Auctioneer", podium.x + 16, podium.y + 10, self.small, TEXT)
         draw_text(surface, self.episode.auctioneer.name, podium.x + 16, podium.y + 28, self.small, GOLD)
 
@@ -233,12 +239,12 @@ class AuctionScreen(Screen):
         for ridx, row_y in enumerate(rows):
             for sidx in range(seats_per_row):
                 bx = rect[0] + spacing * (sidx + 1)
-                color = (90, 130, 200)
+                color = self._blend(CANVAS, ACCENT, 0.55)
                 name_idx = ridx * seats_per_row + sidx
                 label = self.bidder_names[name_idx % len(self.bidder_names)]
                 highlight = label == self.active_bidder and self.stage != "sold"
                 radius = 18 + (6 if highlight else 0)
-                pygame.draw.circle(surface, (18, 22, 44), (bx, row_y + 6), radius + 6)
+                pygame.draw.circle(surface, self._shade(INK, 12), (bx, row_y + 6), radius + 6)
                 pygame.draw.circle(surface, color if not highlight else ACCENT, (bx, row_y), radius)
                 draw_text(surface, label, bx - 52, row_y + 22, self.small, MUTED)
 
@@ -251,7 +257,8 @@ class AuctionScreen(Screen):
             draw_text(surface, applause, rect[0] + rect[2] - 180, rect[1] + rect[3] - 110, self.small, GOLD)
 
     def _render_bid_ticker(self, surface, rect: pygame.Rect):
-        pygame.draw.rect(surface, (18, 24, 48), rect, border_radius=12)
+        pygame.draw.rect(surface, PANEL, rect, border_radius=12)
+        pygame.draw.rect(surface, PANEL_EDGE, rect, width=2, border_radius=12)
         draw_text(surface, "Bid history", rect.x + 12, rect.y + 10, self.small, MUTED)
 
         y = rect.y + 32
@@ -265,8 +272,8 @@ class AuctionScreen(Screen):
             y += 18
 
     def _render_item_image(self, surface, rect, item):
-        pygame.draw.rect(surface, (18, 26, 50), rect, border_radius=10)
-        pygame.draw.rect(surface, (64, 92, 150), rect, width=2, border_radius=10)
+        pygame.draw.rect(surface, PANEL, rect, border_radius=10)
+        pygame.draw.rect(surface, PANEL_EDGE, rect, width=2, border_radius=10)
 
         img = self._get_item_image(item)
         if img:
@@ -294,7 +301,8 @@ class AuctionScreen(Screen):
 
         img_rect = pygame.Rect(x + 12, y + 42, image_size, image_size)
         if not lot:
-            pygame.draw.rect(surface, (18, 26, 50), img_rect, border_radius=10)
+            pygame.draw.rect(surface, PANEL, img_rect, border_radius=10)
+            pygame.draw.rect(surface, PANEL_EDGE, img_rect, width=2, border_radius=10)
             draw_text(surface, "Image spot", img_rect.x + 10, img_rect.y + 10, self.small, MUTED)
             draw_text(surface, "Awaiting lot...", img_rect.x + 10, img_rect.y + 34, self.small, TEXT)
             draw_text(surface, "Keep the pace — more bidders coming soon", x + 12, img_rect.bottom + 14, self.small, MUTED)
@@ -342,7 +350,7 @@ class AuctionScreen(Screen):
         cur = self.episode.auction_cursor + (1 if self.stage != "idle" and not self.episode.auction_done else 0)
         draw_text(surface, f"Progress: {cur}/{total}", stage_rect.x, self.cfg.window_h - 46, self.small, MUTED)
         bar_w = stage_rect.width
-        pygame.draw.rect(surface, (32, 58, 110), (stage_rect.x, self.cfg.window_h - 30, bar_w, 12), border_radius=6)
+        pygame.draw.rect(surface, PANEL_EDGE, (stage_rect.x, self.cfg.window_h - 30, bar_w, 12), border_radius=6)
         if total:
             filled = bar_w * (cur / total)
             pygame.draw.rect(surface, ACCENT, (stage_rect.x, self.cfg.window_h - 30, filled, 12), border_radius=6)

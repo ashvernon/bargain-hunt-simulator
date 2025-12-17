@@ -2,7 +2,7 @@ import pygame
 from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
 from ui.render.draw import draw_text
-from constants import TEXT, MUTED, PANEL
+from constants import BG, TEXT, MUTED
 
 class AppraisalScreen(Screen):
     def __init__(self, cfg, episode):
@@ -13,7 +13,7 @@ class AppraisalScreen(Screen):
 
     def render(self, surface):
         play_w = self.cfg.window_w - self.cfg.hud_w
-        pygame.draw.rect(surface, (20,20,26), (0, 0, play_w, self.cfg.window_h))
+        pygame.draw.rect(surface, BG, (0, 0, play_w, self.cfg.window_h))
         draw_text(surface, "Appraisal", 24, 18, self.font, TEXT)
 
         y = 58
