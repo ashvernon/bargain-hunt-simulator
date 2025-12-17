@@ -31,15 +31,28 @@ def render_hud(surface, cfg, episode, phase, time_left=None, speed: float = 1.0)
         draw_text(surface, f"Confidence: {team.average_confidence:.2f}  Taste: {team.average_taste:.2f}", x, y, small, MUTED); y += 18
         draw_text(surface, f"Budget left: ${team.budget_left:0.0f}", x, y, small, MUTED); y += 18
 
-        team_items = [i for i in team.items_bought if not i.is_expert_pick]
+        if getattr(team, "expert_pick_budget", 0) > 0:
+            draw_text(surface, f"Expert budget ready: ${team.expert_pick_budget:0.0f}", x, y, small, GOLD); y += 18
+
+        team_items = team.team_items
         draw_text(surface, f"Items: {len(team_items)}/{cfg.items_per_team}", x, y, small, MUTED); y += 18
 
         if team.last_action:
             draw_text(surface, team.last_action[:38], x, y, small, TEXT); y += 18
 
         # show items
-        for it in team.items_bought:
-            tag = "[EXPERT] " if it.is_expert_pick else ""
-            draw_text(surface, f"{tag}{it.name[:26]}", x, y, small, TEXT); y += 16
+        for it in team_items:
+            draw_text(surface, f"{it.name[:26]}", x, y, small, TEXT); y += 16
+
+        if getattr(team, "expert_pick_item", None):
+            status = team.expert_pick_included
+            if status is None:
+                draw_text(surface, "Expert pick: hidden until reveal", x, y, small, GOLD); y += 16
+            elif status:
+                draw_text(surface, f"[EXPERT] {team.expert_pick_item.name[:24]}", x, y, small, TEXT); y += 16
+            else:
+                draw_text(surface, "Expert pick declined", x, y, small, MUTED); y += 16
+        elif getattr(team, "expert_pick_budget", 0) >= 1.0:
+            draw_text(surface, "Expert is shopping soon...", x, y, small, MUTED); y += 16
 
         y += 10

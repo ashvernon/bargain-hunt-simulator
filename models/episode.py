@@ -29,6 +29,7 @@ class Episode:
     play_rect: tuple[int,int,int,int]
     items_per_team: int
     starting_budget: float
+    expert_min_budget: float = 1.0
     time_scale: float = 1.0
 
     def setup(self):
@@ -85,6 +86,9 @@ class Episode:
         self.results_done = False
         self.auction_queue = []  # list of AuctionLot
         self.auction_cursor = 0
+        self.auction_stage = "team"
+        self.auction_label = "Team items first"
+        self.last_sold = None
 
     def update_market_ai(self, dt: float, team_speed: float, buy_radius: float):
         # Simple AI: pick a target stall; move; when close, attempt to buy.
@@ -146,18 +150,33 @@ class Episode:
                     team.target_stall_id = None
                     team.last_action = "Expert says: keep looking"
 
+    def _reserved_expert_budget(self, team) -> float:
+        """Minimum cash that must be held back for the expert pick."""
+        return self.expert_min_budget if team.team_item_count < self.items_per_team else 0.0
+
+    def _usable_budget(self, team) -> float:
+        return max(0.0, team.budget_left - self._reserved_expert_budget(team))
+
     def _stall_has_affordable_item(self, team, stall) -> bool:
+        usable_budget = self._usable_budget(team)
+        if usable_budget <= 0:
+            return False
+
         min_expected_price = min(12.0, self.market.min_item_price(default=12.0))
         remaining_slots = self.items_per_team - team.team_item_count
         for it in stall.items:
+            if it.shop_price > usable_budget:
+                continue
             if team.spend_plan and team.spend_plan.allows_purchase(
                 price=it.shop_price,
                 purchase_index=team.team_item_count,
                 budget_start=team.budget_start,
-                budget_left=team.budget_left,
+                budget_left=usable_budget,
                 remaining_slots=remaining_slots,
                 min_expected_price=min_expected_price,
             ):
+                return True
+            if not team.spend_plan:
                 return True
         return False
 
@@ -176,10 +195,11 @@ class Episode:
         if not candidates:
             return None
 
+        usable_budget = self._usable_budget(team)
         best = None
         best_price = float("inf")
         for st in candidates:
-            cheapest = min((it.shop_price for it in st.items if it.shop_price <= team.budget_left), default=None)
+            cheapest = min((it.shop_price for it in st.items if it.shop_price <= usable_budget), default=None)
             if cheapest is not None and cheapest < best_price:
                 best_price, best = cheapest, st
         return best
@@ -187,7 +207,8 @@ class Episode:
     def _pick_cheapest_affordable_item(self, stall, team):
         if not stall or not stall.items:
             return None
-        affordable = [it for it in stall.items if it.shop_price <= team.budget_left]
+        usable_budget = self._usable_budget(team)
+        affordable = [it for it in stall.items if it.shop_price <= usable_budget]
         if not affordable:
             return None
         return min(affordable, key=lambda it: it.shop_price)
@@ -204,14 +225,21 @@ class Episode:
             expert_bonus=neg_bonus,
         )
         item.was_negotiated = did
-        if item.shop_price <= team.budget_left:
-            target.items.remove(item)
-            team.items_bought.append(item)
-            team.budget_left = round(team.budget_left - item.shop_price, 2)
-            neg_txt = f" (-{disc*100:.0f}%)" if did else ""
-            team.last_action = f"Bought: {item.name} ${item.shop_price:.0f}{neg_txt}"
-        else:
+        reserve_needed = self.expert_min_budget if team.team_item_count < self.items_per_team else 0.0
+        if item.shop_price > team.budget_left:
             team.last_action = "Couldn't afford after negotiation"
+            return
+        remaining_after_buy = round(team.budget_left - item.shop_price, 2)
+        if remaining_after_buy < reserve_needed:
+            team.last_action = f"Need ${reserve_needed:0.0f} saved for expert"
+            team.stall_cooldowns[target.stall_id] = 2.5
+            team.target_stall_id = None
+            return
+        target.items.remove(item)
+        team.items_bought.append(item)
+        team.budget_left = remaining_after_buy
+        neg_txt = f" (-{disc*100:.0f}%)" if did else ""
+        team.last_action = f"Bought: {item.name} ${item.shop_price:.0f}{neg_txt}"
 
     def _move_towards(self, team, tx, ty, dt, speed):
         dx, dy = tx - team.x, ty - team.y
@@ -222,108 +250,105 @@ class Episode:
         team.x += dx / dist * step
         team.y += dy / dist * step
 
-    def finish_market_expert_leftover_purchase(self):
-        """Queue expert leftover purchase proposals.
-
-        Each expert proposes an item based on the team's leftover budget. The
-        proposal must later be accepted or declined by the player/UI.
-        """
-        self.expert_purchase_events = []  # list of dicts: team, item, leftover_before, decision
+    def reserve_expert_budget(self):
+        """Lock in the leftover cash that must be handed to the expert."""
         for team in self.teams:
-            leftover = team.budget_left
-            pick = team.expert.choose_leftover_purchase(self.market, leftover, self.rng)
-            decision = "no_pick" if pick is None else None
-            self.expert_purchase_events.append({
-                "team": team,
-                "item": pick,
-                "leftover_before": leftover,
-                "decision": decision,
-            })
-
-    def resolve_expert_purchase(self, idx: int, accept: bool):
-        """Apply a decision for a proposed expert purchase."""
-        event = self.expert_purchase_events[idx]
-        if event["decision"] is not None:
-            return
-
-        team = event["team"]
-        item = event["item"]
-        if not item:
-            event["decision"] = "no_pick"
-            return
-
-        if accept:
-            self.market.remove_item(item)
-            item.is_expert_pick = True
-            team.items_bought.append(item)
+            team.expert_pick_budget = round(team.budget_left, 2)
             team.budget_left = 0.0
-            team.last_action = f"Expert bought: {item.name}"
-            event["decision"] = "accepted"
-        else:
-            team.last_action = "Declined expert pick"
-            event["decision"] = "declined"
+            team.expert_pick_item = None
+            team.expert_pick_included = False if team.expert_pick_budget < self.expert_min_budget else None
+            team.last_action = f"Reserved ${team.expert_pick_budget:0.0f} for expert"
 
-    def auto_decide_expert_purchase(self, idx: int):
-        """Let the team choose whether to follow the expert's proposal."""
-        event = self.expert_purchase_events[idx]
-        if event["decision"] is not None:
+    def prepare_expert_picks(self):
+        """Hand the remaining budget to experts and let them shop within it."""
+        self.expert_purchase_events = []  # list of dicts: team, item, budget
+        for team in self.teams:
+            leftover = round(team.expert_pick_budget if team.expert_pick_budget else team.budget_left, 2)
+            team.expert_pick_budget = leftover
+            team.budget_left = 0.0
+            pick = None
+            if leftover >= self.expert_min_budget:
+                pick = team.expert.choose_leftover_purchase(self.market, leftover, self.rng)
+            team.expert_pick_item = pick
+            team.expert_pick_included = False if pick is None else team.expert_pick_included
+            if pick:
+                self.market.remove_item(pick)
+                pick.is_expert_pick = True
+                pick.attributes["expert_estimate"] = round(team.expert.estimate_value(pick, self.rng), 2)
+                team.last_action = f"Expert shopping with ${leftover:0.0f}"
+            else:
+                team.last_action = "Expert couldn't find an item"
+            self.expert_purchase_events.append({"team": team, "item": pick, "budget": leftover})
+
+    def mark_expert_choice(self, team: Team, include: bool):
+        """Record whether a team wants to include their expert item in scoring."""
+        if not team.expert_pick_item:
+            team.expert_pick_included = False
             return
+        team.expert_pick_included = include
+        if include:
+            team.last_action = f"Including expert pick: {team.expert_pick_item.name}"
+        else:
+            team.last_action = "Declined the expert item"
 
-        accept = self._should_accept_expert_pick(event)
-        self.resolve_expert_purchase(idx, accept)
-        return accept
+    def expert_choices_done(self) -> bool:
+        for team in self.teams:
+            if team.expert_pick_item and team.expert_pick_included is None:
+                return False
+        return True
 
-    def _should_accept_expert_pick(self, event) -> bool:
-        team = event["team"]
-        item = event["item"]
-
-        if not item:
-            return False
-
-        if not team.can_buy_more(self.items_per_team):
-            return False
-
-        if item.shop_price > event["leftover_before"]:
-            return False
-
-        est = team.expert.estimate_value(item, self.rng)
-        margin = est - item.shop_price
-
-        if isinstance(team.strategy, RiskAverseStrategy):
-            return margin >= 6.0 and item.condition >= 0.6
-
-        return margin >= 3.0
-
-    def expert_purchases_done(self) -> bool:
-        return all(evt["decision"] is not None for evt in getattr(self, "expert_purchase_events", []))
+    def has_included_expert_items(self) -> bool:
+        return any(team.expert_pick_included and team.expert_pick_item for team in self.teams)
 
     def start_appraisal(self):
-        # appraise all items (team items + expert pick)
+        # appraise all items (team items + expert pick candidate)
         for team in self.teams:
             for item in team.items_bought:
                 item.appraised_value = self.auctioneer.appraise(item, self.rng)
+            if team.expert_pick_item:
+                team.expert_pick_item.appraised_value = self.auctioneer.appraise(team.expert_pick_item, self.rng)
         self.appraisal_done = True
 
-    def start_auction(self):
-        self.auction_queue = []
+    def _reset_auction_state(self, lots, label: str, stage: str):
+        self.auction_queue = lots
+        self.auction_cursor = 0
+        self.auction_done = len(lots) == 0
+        self.last_sold = None
+        self.auction_label = label
+        self.auction_stage = stage
+
+    def start_team_auction(self):
+        lots: list[AuctionLot] = []
         for team in self.teams:
-            team_items = [it for it in team.items_bought if not it.is_expert_pick]
-            bonus_items = [it for it in team.items_bought if it.is_expert_pick]
-            sequence = team_items + bonus_items
-            team_total = len(sequence)
-            for idx, item in enumerate(sequence, start=1):
-                self.auction_queue.append(
+            team_items = team.team_items
+            team_total = len(team_items)
+            for idx, item in enumerate(team_items, start=1):
+                lots.append(
                     AuctionLot(
                         team=team,
                         item=item,
                         position_in_team=idx,
                         team_total=team_total,
-                        is_bonus=item.is_expert_pick,
+                        is_bonus=False,
                     )
                 )
-        self.auction_cursor = 0
-        self.auction_done = False
-        self.last_sold = None
+        self._reset_auction_state(lots, "Team items first", "team")
+
+    def start_expert_auction(self):
+        lots: list[AuctionLot] = []
+        for team in self.teams:
+            if team.expert_pick_included and team.expert_pick_item:
+                item = team.expert_pick_item
+                lots.append(
+                    AuctionLot(
+                        team=team,
+                        item=item,
+                        position_in_team=1,
+                        team_total=1,
+                        is_bonus=True,
+                    )
+                )
+        self._reset_auction_state(lots, "Expert reveal auction", "expert")
 
     def finalize_auction_sale(self, lot: AuctionLot, sale_price: float):
         """Record the result of an auction lot without advancing RNG twice."""

@@ -27,6 +27,7 @@ class GameConfig:
     items_per_team: int = 3          # team purchases
     expert_extra_item: int = 1       # expert leftover purchase (0/1)
     starting_budget: float = 300.0
+    expert_min_budget: float = 1.0   # must be reserved for the expert bonus buy
 
     # Visual layout
     hud_w: int = 360

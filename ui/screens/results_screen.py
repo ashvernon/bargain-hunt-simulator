@@ -20,7 +20,10 @@ class ResultsScreen(Screen):
         return tuple(int(base[i] * (1 - strength) + color[i] * strength) for i in range(3))
 
     def _draw_team_card(self, surface, team, x, y, width):
-        item_lines = len(team.items_bought)
+        items = team.included_items if hasattr(team, "included_items") else team.items_bought
+        item_lines = len(items)
+        if getattr(team, "expert_pick_item", None) and not team.expert_pick_included:
+            item_lines += 1
         card_height = 70 + item_lines * 34
         bg = self._tint_with_canvas(team.color, 0.58)
         outline = self._shade(team.color, -26)
@@ -46,7 +49,7 @@ class ResultsScreen(Screen):
         )
         inner_y += 26
 
-        for it in team.items_bought:
+        for it in items:
             tag = " [EXPERT]" if it.is_expert_pick else ""
             profit = it.auction_price - it.shop_price
             col = GOOD if profit > 0 else BAD
@@ -60,6 +63,10 @@ class ResultsScreen(Screen):
                 self.micro,
                 col,
             )
+            inner_y += 18
+
+        if getattr(team, "expert_pick_item", None) and not team.expert_pick_included:
+            draw_text(surface, "Expert pick excluded from scoring", x + 20, inner_y, self.small, MUTED)
             inner_y += 18
 
     def render(self, surface):
@@ -79,7 +86,10 @@ class ResultsScreen(Screen):
 
         for team in self.episode.teams:
             self._draw_team_card(surface, team, 18, y, play_w - 36)
-            y += 90 + len(team.items_bought) * 34
+            item_count = len(team.included_items if hasattr(team, "included_items") else team.items_bought)
+            if getattr(team, "expert_pick_item", None) and not team.expert_pick_included:
+                item_count += 1
+            y += 90 + item_count * 34
 
         draw_text(surface, "SPACE: skip phases | Close window to exit", 24, self.cfg.window_h - 26, self.small, MUTED)
         render_hud(

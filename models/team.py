@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from models.contestant import Contestant
+from typing import List
 
 @dataclass
 class Team:
@@ -19,6 +20,9 @@ class Team:
 
     # Purchases and outcomes
     items_bought: list = field(default_factory=list)
+    expert_pick_budget: float = 0.0
+    expert_pick_item: object | None = None
+    expert_pick_included: bool | None = None
     spend: float = 0.0
     revenue: float = 0.0
     profit: float = 0.0
@@ -59,6 +63,14 @@ class Team:
     @property
     def team_item_count(self) -> int:
         return len(self.team_items)
+
+    @property
+    def included_items(self) -> List:
+        items = list(self.items_bought)
+        if self.expert_pick_included and self.expert_pick_item:
+            if self.expert_pick_item not in items:
+                items.append(self.expert_pick_item)
+        return items
 
     def stall_taste_score(self, stall) -> float:
         """How much this duo is drawn to the stall's style and condition."""

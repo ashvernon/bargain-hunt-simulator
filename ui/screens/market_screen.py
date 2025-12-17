@@ -2,7 +2,7 @@ import pygame
 from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
 from ui.render.draw import draw_text
-from constants import BG, STALL, STALL_EDGE, TEXT, MUTED
+from constants import BG, STALL, STALL_EDGE, TEXT, MUTED, GOOD
 
 class MarketScreen(Screen):
     def __init__(self, cfg, episode):
@@ -32,6 +32,8 @@ class MarketScreen(Screen):
         for team in self.episode.teams:
             pygame.draw.circle(surface, team.color, (int(team.x), int(team.y)), 10)
             draw_text(surface, team.duo_label(), int(team.x)+12, int(team.y)-10, self.small, team.color)
+            if len(team.team_items) >= self.cfg.items_per_team:
+                draw_text(surface, "Done shopping", int(team.x)+12, int(team.y)+8, self.small, GOOD)
 
         render_hud(
             surface,
