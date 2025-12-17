@@ -22,6 +22,13 @@ class GameConfig:
     backtrack_probability: float = 0.22
     market_pace_multiplier: float = 0.55
 
+    # Experts
+    expert_roster_path: str = "data/experts.json"
+    expert_roster_size: int = 10
+    expert_effect_strength: float = 1.0
+    expert_regen_allowed: bool = False
+    expert_force_regen: bool = False
+
     # Item sourcing
     # Which dataset to use for generating items: default assets JSON, generated
     # JSONL set, or a combination of both. Defaults to the generated JSONL set

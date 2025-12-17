@@ -112,10 +112,10 @@ class ExpertAssignmentScreen(Screen):
 
             info_x = portrait_rect.right + card_padding
             info_y = inner_y + 14
-            draw_text(surface, f"Expert: {team.expert.name}", info_x, info_y, self.body_font, GOLD); info_y += 26
-            draw_text(surface, f"Negotiation boost: {team.expert.negotiation_bonus*100:.0f}%", info_x, info_y, self.stat_font, ACCENT); info_y += 22
-            fav = ", ".join(team.expert.bias.keys()) if getattr(team.expert, "bias", None) else "All categories"
-            draw_text(surface, f"Specialty: {fav}", info_x, info_y, self.stat_font, MUTED)
+            draw_text(surface, f"Expert: {team.expert.name}", info_x, info_y, self.body_font, GOLD); info_y += 22
+            draw_text(surface, f"Specialty: {team.expert.specialty.title()}", info_x, info_y, self.stat_font, MUTED); info_y += 20
+            draw_text(surface, f"Style: {team.expert.signature_style}", info_x, info_y, self.stat_font, MUTED); info_y += 20
+            draw_text(surface, f"Negotiation boost: {team.expert.negotiation_bonus*100:.0f}%", info_x, info_y, self.stat_font, ACCENT); info_y += 20
 
             flavor_y = portrait_rect.bottom + card_padding // 2
             draw_text(surface, "Lean on your expert for", inner_x, flavor_y, self.small, TEXT); flavor_y += 18

@@ -6,7 +6,7 @@ from sim.rng import RNG
 from models.market import Market
 from models.team import Team
 from models.item import Item
-from models.expert import Expert
+from models.expert import ExpertProfile
 from models.auctioneer import Auctioneer
 from models.auction_house import AuctionHouse
 from sim.pricing import negotiate
@@ -14,6 +14,7 @@ from sim.scoring import compute_team_totals, golden_gavel
 from ai.strategy_value import ValueHunterStrategy
 from ai.strategy_risk import RiskAverseStrategy
 from sim.team_generator import generate_random_teams
+from sim.expert_roster import assign_episode_experts, load_expert_roster
 
 @dataclass
 class AuctionLot:
@@ -31,17 +32,32 @@ class Episode:
     items_per_team: int
     starting_budget: float
     expert_min_budget: float = 1.0
+    cfg: GameConfig | None = None
     time_scale: float = 1.0
 
     def setup(self):
+        self.cfg = self.cfg or GameConfig()
+        cfg = self.cfg
         self.rng = RNG(self.seed)
         self.market = Market.generate(self.rng, self.play_rect)
         self.auction_house = AuctionHouse.generate(self.rng)
         self.auctioneer = Auctioneer("Chloe", accuracy=0.83, bias={"silverware": 1.05})
 
         # Experts
-        exp_a = Expert("Natasha", accuracy=0.80, negotiation_bonus=0.08, bias={"glassware": 1.06})
-        exp_b = Expert("Raj", accuracy=0.76, negotiation_bonus=0.06, bias={"tools": 1.08})
+        roster = load_expert_roster(
+            path=cfg.expert_roster_path,
+            expected_size=cfg.expert_roster_size,
+            regen_allowed=cfg.expert_regen_allowed,
+            force_regen=cfg.expert_force_regen,
+        )
+        assigned_experts = assign_episode_experts(
+            self.rng,
+            roster,
+            count=2,
+            effect_strength=cfg.expert_effect_strength,
+        )
+        self.assigned_expert_profiles: list[ExpertProfile] = [exp.profile for exp in assigned_experts]
+        exp_a, exp_b = assigned_experts
 
         # Teams
         x0,y0,w,h = self.play_rect
@@ -223,13 +239,19 @@ class Episode:
             "forced_choice": forced_choice,
             "decision_time": decision_time,
         }
-        chat_triggered = self.rng.random() < cfg.expert_chat_probability
+        chat_weight = 1.0 + (team.expert.trust_factor - 0.5) * 0.6 if team.expert else 1.0
+        chat_prob = max(0.05, min(0.95, cfg.expert_chat_probability * chat_weight))
+        chat_triggered = self.rng.random() < chat_prob
         if chat_triggered:
             chat_time = self.rng.uniform(*cfg.expert_chat_seconds_range)
+            if team.expert:
+                chat_time *= team.expert.consultation_time_factor
             team.state_timer = chat_time
             team.market_state = "CONSULTING_EXPERT"
             team.last_action = f"Consulting expert about {item.name}"
         else:
+            if team.expert:
+                decision_time *= team.expert.consultation_time_factor
             team.state_timer = decision_time
             team.market_state = "CONSIDERING_ITEM"
             team.last_action = f"Considering {item.name}"
@@ -470,6 +492,7 @@ class Episode:
                 self.market.remove_item(pick)
                 pick.is_expert_pick = True
                 pick.attributes["expert_estimate"] = round(team.expert.estimate_value(pick, self.rng), 2)
+                team.expert_pick_budget = round(max(0.0, leftover - pick.shop_price), 2)
                 team.last_action = f"Expert shopping with ${leftover:0.0f}"
             else:
                 team.last_action = "Expert couldn't find an item"

@@ -9,7 +9,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from ai.spend_plan import default_spend_plans
 from ai.strategy_value import ValueHunterStrategy
 from models.episode import Episode
-from models.expert import Expert
+from models.expert import Expert, ExpertProfile
 from models.item import Item
 from models.market import Market
 from models.stall import Stall
@@ -34,6 +34,23 @@ def make_item(item_id: int, price: float, true_value: float = 120.0):
         true_value=true_value,
         shop_price=price,
     )
+
+
+def make_expert(name: str = "Helper", specialty: str = "tools") -> Expert:
+    profile = ExpertProfile(
+        id=f"expert_{name.lower()}",
+        full_name=name,
+        specialty=specialty,
+        years_experience=10,
+        signature_style="calm mentor",
+        appraisal_accuracy=0.8,
+        negotiation_skill=0.6,
+        risk_appetite=0.5,
+        category_bias={specialty: 1.1},
+        time_management=0.6,
+        trust_factor=0.6,
+    )
+    return Expert(profile)
 
 
 def test_spend_plan_keeps_budget_for_future_buys():
@@ -75,7 +92,7 @@ def test_retarget_when_current_stall_too_expensive(rng):
         budget_start=50,
         budget_left=50,
         strategy=strategy,
-        expert=Expert("Helper"),
+        expert=make_expert(),
         contestants=[],
         x=0,
         y=0,
@@ -118,7 +135,7 @@ def test_strategy_respects_plan_when_picking_item(rng):
         budget_start=50,
         budget_left=50,
         strategy=strategy,
-        expert=Expert("Helper"),
+        expert=make_expert(),
         contestants=[],
         x=0,
         y=0,

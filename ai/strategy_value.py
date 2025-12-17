@@ -66,6 +66,8 @@ class ValueHunterStrategy(Strategy):
             margin = est - rec.shop_price
             target_margin = 12.0 - style_bonus * 4.0
             target_margin -= team.average_confidence * 1.5
+            if team.expert:
+                target_margin = team.expert.adjust_target_margin(target_margin)
             if margin > max(6.0, target_margin):
                 score = margin + style_bonus
                 if score > best_score:
