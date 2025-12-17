@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
+import math
 from models.stall import Stall
 from sim.item_factory import make_item
 from sim.pricing import set_shop_price
@@ -14,25 +15,33 @@ class Market:
         x0,y0,w,h = play_rect
         stalls = []
         styles = ["fair", "overpriced", "chaotic"]
-        # Place stalls around the map
-        layout = [
-            (x0 + 60, y0 + 60),
-            (x0 + w - 220, y0 + 70),
-            (x0 + 80, y0 + h - 180),
-            (x0 + w - 240, y0 + h - 190),
-            (x0 + w / 2 - 80, y0 + 120),
-            (x0 + w / 2 - 80, y0 + h - 230),
-            (x0 + 40, y0 + h / 2 - 30),
-            (x0 + w - 210, y0 + h / 2 - 30),
-            (x0 + w / 2 - 200, y0 + h / 2 + 70),
-            (x0 + w / 2 + 40, y0 + h / 2 + 70),
-        ]
+        stall_w, stall_h = 170, 110
+
+        # Place stalls in a spaced grid so labels do not overlap while
+        # adapting to the available play area width/height.
+        total_stalls = 10
+        preferred_cols = 4
+        min_gap = 24
+        cols = preferred_cols if stall_w * preferred_cols + (preferred_cols + 1) * min_gap <= w else 3
+        rows = math.ceil(total_stalls / cols)
+
+        gap_x = max(min_gap, (w - cols * stall_w) / (cols + 1))
+        gap_y = max(min_gap, (h - rows * stall_h) / (rows + 1))
+
+        layout = []
+        for idx in range(total_stalls):
+            row = idx // cols
+            col = idx % cols
+            sx = x0 + gap_x + col * (stall_w + gap_x)
+            sy = y0 + gap_y + row * (stall_h + gap_y)
+            layout.append((sx, sy))
+
         for i,(sx,sy) in enumerate(layout, start=1):
             style = rng.choice(styles)
             stall = Stall(
                 stall_id=i,
                 name=f"Stall {i} ({style})",
-                rect=(int(sx), int(sy), 170, 110),
+                rect=(int(sx), int(sy), stall_w, stall_h),
                 pricing_style=style,
                 discount_chance=0.18 if style!="overpriced" else 0.10,
                 discount_min=0.05,
