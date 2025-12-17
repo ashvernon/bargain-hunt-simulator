@@ -12,6 +12,8 @@ from constants import (
     STALL_SILHOUETTE,
     STALL_ACTIVE_EDGE,
     STALL_ACTIVE_GLOW,
+    STALL_SHADE_MIN,
+    STALL_SHADE_MAX,
     STALL_TYPE_TINT_FAIR,
     STALL_TYPE_TINT_OVERPRICED,
     STALL_TYPE_TINT_CHAOTIC,
@@ -98,13 +100,15 @@ class StallCardRenderer:
         surface = pygame.Surface((w, h), pygame.SRCALPHA)
         style = (stall.pricing_style or "").lower()
         tint = self._type_tints.get(style, (0, 0, 0))
+        shade = self._shade_for_stall(stall.stall_id)
 
         for row in range(h):
             mix = row / max(1, h - 1)
             r = self._lerp(STALL_GRAD_TOP[0], STALL_GRAD_BOTTOM[0], mix)
             g = self._lerp(STALL_GRAD_TOP[1], STALL_GRAD_BOTTOM[1], mix)
             b = self._lerp(STALL_GRAD_TOP[2], STALL_GRAD_BOTTOM[2], mix)
-            tinted = self._apply_tint((r, g, b), tint, 0.65)
+            shaded_base = self._apply_shade((r, g, b), shade)
+            tinted = self._apply_tint(shaded_base, tint, 0.65)
             surface.fill(tinted, rect=pygame.Rect(0, row, w, 1))
 
         mask = pygame.Surface((w, h), pygame.SRCALPHA)
@@ -114,8 +118,10 @@ class StallCardRenderer:
 
         lip_height = max(10, int(h * 0.12))
         lip_rect = pygame.Rect(6, h - lip_height - 4, w - 12, lip_height)
-        pygame.draw.rect(surface, STALL_LIP, lip_rect, border_radius=6)
-        pygame.draw.rect(surface, STALL_LIP_EDGE, lip_rect.inflate(-4, -4), border_radius=4)
+        shaded_lip = self._apply_shade(STALL_LIP, shade)
+        shaded_lip_edge = self._apply_shade(STALL_LIP_EDGE, shade)
+        pygame.draw.rect(surface, shaded_lip, lip_rect, border_radius=6)
+        pygame.draw.rect(surface, shaded_lip_edge, lip_rect.inflate(-4, -4), border_radius=4)
 
         silhouette_rng = random.Random(stall.stall_id * 9973)
         silhouettes = silhouette_rng.sample(self._silhouettes, k=min(2, len(self._silhouettes)))
@@ -214,6 +220,13 @@ class StallCardRenderer:
         return tuple(
             max(0, min(255, int(c + t * strength))) for c, t in zip(base_color, tint)
         )
+
+    def _shade_for_stall(self, stall_id: int) -> float:
+        rnd = random.Random(stall_id * 571)
+        return rnd.uniform(STALL_SHADE_MIN, STALL_SHADE_MAX)
+
+    def _apply_shade(self, color: tuple[int, int, int], shade: float) -> tuple[int, int, int]:
+        return tuple(max(0, min(255, int(channel * shade))) for channel in color)
 
     def _lerp(self, a: float, b: float, t: float) -> int:
         return int(a + (b - a) * t)
