@@ -13,7 +13,7 @@ from sim.pricing import negotiate
 from sim.scoring import compute_team_totals, golden_gavel
 from ai.strategy_value import ValueHunterStrategy
 from ai.strategy_risk import RiskAverseStrategy
-from models.contestant import Contestant
+from sim.team_generator import generate_random_teams
 
 @dataclass
 class AuctionLot:
@@ -45,38 +45,39 @@ class Episode:
 
         # Teams
         x0,y0,w,h = self.play_rect
-        red_duo = [
-            Contestant("Harriet", "Team Captain", confidence=0.78, taste=0.64),
-            Contestant("Louie", "Spotter", confidence=0.62, taste=0.72),
-        ]
-        blue_duo = [
-            Contestant("Amira", "Strategist", confidence=0.70, taste=0.80),
-            Contestant("Felix", "Dealer", confidence=0.58, taste=0.66),
+        team_profiles = generate_random_teams(self.rng, color_labels=["Red", "Blue"])
+        team_slots = [
+            {
+                "profile": team_profiles[0],
+                "color": TEAM_A,
+                "strategy": ValueHunterStrategy(),
+                "expert": exp_a,
+                "pos": (x0 + 90, y0 + h / 2),
+            },
+            {
+                "profile": team_profiles[1],
+                "color": TEAM_B,
+                "strategy": RiskAverseStrategy(),
+                "expert": exp_b,
+                "pos": (x0 + w - 120, y0 + h / 2),
+            },
         ]
 
         self.teams = [
             Team(
-                "Red Team",
-                TEAM_A,
+                slot["profile"].name,
+                slot["color"],
                 self.starting_budget,
                 self.starting_budget,
-                ValueHunterStrategy(),
-                exp_a,
-                red_duo,
-                x0 + 90,
-                y0 + h / 2,
-            ),
-            Team(
-                "Blue Team",
-                TEAM_B,
-                self.starting_budget,
-                self.starting_budget,
-                RiskAverseStrategy(),
-                exp_b,
-                blue_duo,
-                x0 + w - 120,
-                y0 + h / 2,
-            ),
+                slot["strategy"],
+                slot["expert"],
+                slot["profile"].contestants,
+                slot["pos"][0],
+                slot["pos"][1],
+                relationship=slot["profile"].relationship,
+                relationship_type=slot["profile"].relationship_type,
+            )
+            for slot in team_slots
         ]
 
         for team in self.teams:
