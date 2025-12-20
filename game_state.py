@@ -173,11 +173,11 @@ class GameState:
 
     def _toggle_speed(self):
         speeds = [2.0, 10.0, 20.0]
-        try:
+        if self.time_scale not in speeds:
+            self.time_scale = speeds[0]
+        else:
             idx = speeds.index(self.time_scale)
-        except ValueError:
-            idx = 0
-        self.time_scale = speeds[(idx + 1) % len(speeds)]
+            self.time_scale = speeds[(idx + 1) % len(speeds)]
         self.episode.time_scale = self.time_scale
 
     def render(self, screen):
