@@ -105,8 +105,8 @@
     "mood_baseline": "methodical"
   },
   {
-    "id": "expert_lila_chen",
-    "full_name": "Lila Chen",
+    "id": "expert_lila_macgregor",
+    "full_name": "Lila Macgregor",
     "specialty": "books",
     "years_experience": 10,
     "signature_style": "methodical researcher",
@@ -120,8 +120,8 @@
     "mood_baseline": "calm"
   },
   {
-    "id": "expert_carmen_alvarez",
-    "full_name": "Carmen Alvarez",
+    "id": " ",
+    "full_name": "Charlie Allwell",
     "specialty": "glassware",
     "years_experience": 13,
     "signature_style": "story-first picker",

@@ -2,6 +2,7 @@ import time
 from pathlib import Path
 
 import pygame
+import moviepy
 
 try:
     from moviepy.editor import VideoFileClip
