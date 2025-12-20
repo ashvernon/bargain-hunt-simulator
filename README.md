@@ -2,6 +2,15 @@
 
 An AI-driven mini-simulation of a *Bargain Hunt*-style episode. Two teams roam a procedurally generated market, buy antiques with expert guidance, take one last expert pick from the leftovers, then head to appraisal, auction, and scoring—with narrated intros, richer item data, and animated auctions along the way.
 
+## Screenshots
+![Market overview](screenshots/image.png)
+![Stall variety](screenshots/image2.png)
+![Item cards](screenshots/image3.png)
+![Consultation view](screenshots/image4.png)
+![Appraisal table](screenshots/image5.png)
+![Auction sequence](screenshots/image6.png)
+![Results summary](screenshots/image7.png)
+
 ## Features
 - **Cinematic intro sequence:** Optional splash video plus host, contestant, expert, and market send-off cards set the stage; skip anytime with Space or fast-forward with Enter/Right.【F:config.py†L7-L22】【F:game_state.py†L10-L48】【F:ui/screens/intro_screens.py†L15-L101】
 - **Procedural fairground:** Each episode builds ten stalls with varied pricing styles, discount behavior, and randomized stock while adapting layout to the available play space.【F:models/market.py†L12-L57】
@@ -35,12 +44,6 @@ python main.py --item-source combined
 - **SPACE**: Skip to the next phase (market → expert pick → appraisal → auction → results).【F:game_state.py†L27-L48】
 - **F**: Cycle simulation speed multipliers (2×, 10×, 20×) during any phase.【F:game_state.py†L62-L77】
 - All shopping, expert decisions, appraisals, and auctions run automatically—just sit back and watch the episode unfold.
-
-## Screenshots
-Market stalls and movement trails inside the fairground:
-
-![Market screen](screenshots/market_screen.png)
-![Footsteps trail](screenshots/footsteps_trail.png)
 
 ## Bargain Hunt Simulator: Feature Analysis and Simulation Dynamics
 
