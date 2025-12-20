@@ -6,6 +6,9 @@ from ui.render.stall_card import StallCardRenderer
 from constants import (
     BG,
     GOOD,
+    HOST_ACCENT,
+    HOST_OUTLINE,
+    HOST_RADIUS,
     TEAM_EXPERT_ACCENT,
     TEAM_EXPERT_RADIUS,
     TEAM_MARKER_OUTLINE,
@@ -35,6 +38,22 @@ class MarketScreen(Screen):
             pygame.draw.circle(surface, TEAM_MARKER_OUTLINE, pos, radius + 2)
             pygame.draw.circle(surface, fill, pos, radius)
 
+    def _draw_host(self, surface):
+        host = getattr(self.episode, "host", None)
+        if not host or host.state == "GONE":
+            return
+
+        pos = (int(host.x), int(host.y))
+        pygame.draw.circle(surface, HOST_OUTLINE, pos, HOST_RADIUS + 3)
+        pygame.draw.circle(surface, HOST_ACCENT, pos, HOST_RADIUS)
+        step_offset = HOST_RADIUS // 2
+        footprint_points = [
+            (pos[0] - step_offset, pos[1] + HOST_RADIUS + 2),
+            (pos[0] + step_offset, pos[1] + HOST_RADIUS + 2),
+            (pos[0], pos[1] + HOST_RADIUS + 4),
+        ]
+        pygame.draw.polygon(surface, HOST_OUTLINE, footprint_points)
+
     def render(self, surface):
         # play area
         play_w = self.cfg.window_w - self.cfg.hud_w
@@ -56,6 +75,8 @@ class MarketScreen(Screen):
                 self.small,
                 is_active=st.stall_id in active_stalls,
             )
+
+        self._draw_host(surface)
 
         # teams
         for team in self.episode.teams:

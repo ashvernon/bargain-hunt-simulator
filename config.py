@@ -21,6 +21,9 @@ class GameConfig:
     expert_chat_seconds_range: tuple[float, float] = (8.0, 18.0)
     backtrack_probability: float = 0.22
     market_pace_multiplier: float = 0.55
+    host_exit_delay_seconds: float = 2.4
+    host_walk_speed_px_s: float = 140.0
+    host_exit_padding_px: int = 80
 
     # Experts
     expert_roster_path: str = "data/experts.json"
