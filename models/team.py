@@ -4,6 +4,13 @@ from models.contestant import Contestant, RelationshipType
 from typing import List
 
 @dataclass
+class TeamMemberState:
+    key: str
+    label: str
+    role: str
+    kind: str  # contestant | expert
+
+@dataclass
 class Team:
     name: str
     color: tuple[int,int,int]
@@ -16,6 +23,9 @@ class Team:
     # Movement
     x: float
     y: float
+    member_positions: dict[str, tuple[float, float]] = field(default_factory=dict)
+    member_roles: dict[str, str] = field(default_factory=dict)
+    heading: tuple[float, float] = (1.0, 0.0)
 
     relationship: str | None = None
     relationship_type: RelationshipType | None = None
@@ -105,3 +115,35 @@ class Team:
 
     def role_blurb(self) -> str:
         return ", ".join(f"{c.name} ({c.role})" for c in self.contestants)
+
+    @property
+    def members(self) -> list[TeamMemberState]:
+        roster = [
+            TeamMemberState(
+                key=f"contestant_{idx}",
+                label=c.name,
+                role=c.role,
+                kind="contestant",
+            )
+            for idx, c in enumerate(self.contestants)
+        ]
+        if self.expert:
+            roster.append(
+                TeamMemberState(
+                    key="expert",
+                    label=getattr(self.expert, "name", "Expert"),
+                    role=getattr(self.expert, "signature_style", "Expert"),
+                    kind="expert",
+                )
+            )
+        return roster
+
+    def ensure_member_positions(self):
+        origin = self.pos()
+        for member in self.members:
+            self.member_positions.setdefault(member.key, origin)
+            if member.role and member.key not in self.member_roles:
+                self.member_roles[member.key] = member.role
+
+    def member_pos(self, member_key: str) -> tuple[float, float]:
+        return self.member_positions.get(member_key, self.pos())
