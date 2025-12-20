@@ -4,31 +4,37 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from sim.economy_config import AUCTIONEER, AUCTION_HOUSE, GAVEL, NEGOTIATION, SHOP_PRICING
+
 
 @dataclass
 class ShopPricingConfig:
-    fair: tuple[float, float] = (0.55, 0.9)
-    overpriced: tuple[float, float] = (0.85, 1.25)
-    chaotic: tuple[float, float] = (0.45, 1.45)
-    min_price: float = 5.0
+    fair: tuple[float, float] = field(default_factory=lambda: tuple(SHOP_PRICING["fair"]))
+    overpriced: tuple[float, float] = field(
+        default_factory=lambda: tuple(SHOP_PRICING["overpriced"])
+    )
+    chaotic: tuple[float, float] = field(default_factory=lambda: tuple(SHOP_PRICING["chaotic"]))
+    min_price: float = SHOP_PRICING["min_price"]
 
 
 @dataclass
 class NegotiationConfig:
-    max_chance: float = 0.95
-    discount_min: float | None = None
-    discount_max: float | None = None
-    discount_floor: float = 0.0
-    discount_ceiling: float = 0.85
+    max_chance: float = NEGOTIATION["max_chance"]
+    discount_min: float | None = NEGOTIATION["discount_min"]
+    discount_max: float | None = NEGOTIATION["discount_max"]
+    discount_floor: float = NEGOTIATION["discount_floor"]
+    discount_ceiling: float = NEGOTIATION["discount_ceiling"]
 
 
 @dataclass
 class AuctioneerConfig:
-    sigma_floor: float = 0.03
-    sigma_scale: float = 0.55
-    bias_by_category: dict[str, float] = field(default_factory=dict)
-    default_accuracy: float = 0.82
-    appraisal_ratio_cap: float = 1.55
+    sigma_floor: float = AUCTIONEER["sigma_floor"]
+    sigma_scale: float = AUCTIONEER["sigma_scale"]
+    bias_by_category: dict[str, float] = field(
+        default_factory=lambda: dict(AUCTIONEER["bias_by_category"])
+    )
+    default_accuracy: float = AUCTIONEER["default_accuracy"]
+    appraisal_ratio_cap: float = AUCTIONEER["appraisal_ratio_cap"]
 
 
 @dataclass
@@ -56,26 +62,23 @@ class AuctionHouseConfig:
             "books",
         ]
     )
-    demand_range: tuple[float, float] = (0.85, 1.25)
-    mood_probs: dict[str, float] = field(
-        default_factory=lambda: {"hot": 1.0, "cold": 1.0, "mixed": 1.0}
-    )
+    demand_range: tuple[float, float] = (AUCTION_HOUSE["demand_min"], AUCTION_HOUSE["demand_max"])
+    mood_probs: dict[str, float] = field(default_factory=lambda: dict(AUCTION_HOUSE["mood_probs"]))
     moods: dict[str, MoodTuning] = field(
         default_factory=lambda: {
-            "hot": MoodTuning(multiplier=1.03, sigma=0.30),
-            "cold": MoodTuning(multiplier=0.9, sigma=0.26),
-            "mixed": MoodTuning(multiplier=1.0, sigma=0.28),
+            name: MoodTuning(multiplier=vals["multiplier"], sigma=vals["sigma"])
+            for name, vals in AUCTION_HOUSE["moods"].items()
         }
     )
-    clamp_multiplier: float = 2.4
-    condition_base: float = 0.65
-    condition_scale: float = 0.75
+    clamp_multiplier: float = AUCTION_HOUSE["clamp_multiplier"]
+    condition_base: float = AUCTION_HOUSE["condition_base"]
+    condition_scale: float = AUCTION_HOUSE["condition_scale"]
 
 
 @dataclass
 class GavelConfig:
-    profit_threshold: float = 225.0
-    probability: float = 0.25
+    profit_threshold: float = GAVEL["profit_threshold"]
+    probability: float = GAVEL["probability"]
 
 
 @dataclass

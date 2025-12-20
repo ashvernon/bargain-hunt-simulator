@@ -18,10 +18,18 @@ class AuctionHouse:
         for c in cats:
             demand[c] = rng.uniform(*ah_cfg.demand_range)
 
-        mood_population = []
-        for mood_name, weight in ah_cfg.mood_probs.items():
-            mood_population.extend([mood_name] * int(weight * 100))
-        mood = rng.choice(mood_population) if mood_population else "mixed"
+        total_weight = sum(ah_cfg.mood_probs.values())
+        if total_weight > 0:
+            draw = rng.random() * total_weight
+            cumulative = 0.0
+            mood = "mixed"
+            for mood_name, weight in ah_cfg.mood_probs.items():
+                cumulative += weight
+                if draw <= cumulative:
+                    mood = mood_name
+                    break
+        else:
+            mood = "mixed"
         return cls(demand_by_category=demand, mood=mood)
 
     def sell(self, item, rng, cfg: BalanceConfig | None = None) -> float:
