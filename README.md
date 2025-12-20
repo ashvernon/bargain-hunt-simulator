@@ -35,3 +35,9 @@ python main.py --item-source combined
 - **SPACE**: Skip to the next phase (market → expert pick → appraisal → auction → results).【F:game_state.py†L27-L48】
 - **F**: Cycle simulation speed multipliers (2×, 10×, 20×) during any phase.【F:game_state.py†L62-L77】
 - All shopping, expert decisions, appraisals, and auctions run automatically—just sit back and watch the episode unfold.
+
+## Screenshots
+Market stalls and movement trails inside the fairground:
+
+![Market screen](screenshots/market_screen.png)
+![Footsteps trail](screenshots/footsteps_trail.png)
