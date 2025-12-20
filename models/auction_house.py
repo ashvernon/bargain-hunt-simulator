@@ -36,7 +36,9 @@ class AuctionHouse:
         sigma = mood_tuning.sigma
 
         noise = rng.lognormal(0.0, sigma)
-        price = item.true_value * demand * condition_mult * mood_mult * noise
-        # Clamp to keep values sane
-        price = max(1.0, min(price, item.true_value * ah_cfg.clamp_multiplier))
+        multiplier = demand * condition_mult * mood_mult * noise
+        clamp_hi = ah_cfg.clamp_multiplier
+        clamp_lo = 1.0 / clamp_hi
+        multiplier = max(clamp_lo, min(multiplier, clamp_hi))
+        price = max(1.0, item.true_value * multiplier)
         return float(round(price, 2))

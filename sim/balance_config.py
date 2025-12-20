@@ -27,7 +27,8 @@ class AuctioneerConfig:
     sigma_floor: float = 0.03
     sigma_scale: float = 0.55
     bias_by_category: dict[str, float] = field(default_factory=dict)
-    default_accuracy: float = 0.84
+    default_accuracy: float = 0.82
+    appraisal_ratio_cap: float = 1.55
 
 
 @dataclass
@@ -61,12 +62,12 @@ class AuctionHouseConfig:
     )
     moods: dict[str, MoodTuning] = field(
         default_factory=lambda: {
-            "hot": MoodTuning(multiplier=1.08, sigma=0.40),
-            "cold": MoodTuning(multiplier=0.93, sigma=0.33),
-            "mixed": MoodTuning(multiplier=1.0, sigma=0.36),
+            "hot": MoodTuning(multiplier=1.03, sigma=0.30),
+            "cold": MoodTuning(multiplier=0.9, sigma=0.26),
+            "mixed": MoodTuning(multiplier=1.0, sigma=0.28),
         }
     )
-    clamp_multiplier: float = 3.5
+    clamp_multiplier: float = 2.4
     condition_base: float = 0.65
     condition_scale: float = 0.75
 
@@ -107,7 +108,7 @@ class BalanceConfig:
             for key, value in moods.items():
                 built[key] = MoodTuning(
                     multiplier=value.get("multiplier", 1.0),
-                    sigma=value.get("sigma", 0.36),
+                    sigma=value.get("sigma", AuctionHouseConfig().moods["mixed"].sigma),
                 )
             return built
 
@@ -144,6 +145,9 @@ class BalanceConfig:
             ),
             default_accuracy=auctioneer_data.get(
                 "default_accuracy", AuctioneerConfig().default_accuracy
+            ),
+            appraisal_ratio_cap=auctioneer_data.get(
+                "appraisal_ratio_cap", AuctioneerConfig().appraisal_ratio_cap
             ),
         )
 
