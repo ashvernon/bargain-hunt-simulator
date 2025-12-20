@@ -29,6 +29,9 @@ GOOD = (126, 212, 164)
 ACCENT = (148, 190, 255)
 INK = (10, 14, 24)
 CANVAS = (32, 46, 78)
+HOST_ACCENT = (240, 202, 128)
+HOST_OUTLINE = (120, 88, 52)
+HOST_RADIUS = 10
 
 # Team markers and movement
 TEAM_MARKER_OUTLINE = (8, 12, 18)
