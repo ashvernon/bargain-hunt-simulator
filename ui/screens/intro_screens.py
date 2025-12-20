@@ -118,8 +118,8 @@ class ExpertAssignmentScreen(Screen):
         gutter = self.cfg.margin
         content_width = self.cfg.window_w - self.cfg.margin * 6
         card_width = (content_width - gutter * (cards_per_row - 1)) // cards_per_row
-        card_height = 230
-        card_padding = self.cfg.margin
+        card_height = 300
+        card_padding = self.cfg.margin + 4
 
         for idx, team in enumerate(self.episode.teams):
             row = idx // cards_per_row
@@ -134,9 +134,18 @@ class ExpertAssignmentScreen(Screen):
             inner_x = card_x + card_padding
             inner_y = card_y + card_padding
             draw_text(surface, f"{team.name}", inner_x, inner_y, self.title_font, team.color)
+            inner_y += 30
+            draw_text(
+                surface,
+                f"{team.expert.specialty.title()} specialist · {team.expert.profile.years_experience} yrs",
+                inner_x,
+                inner_y,
+                self.small,
+                MUTED,
+            )
 
-            portrait_frame_size = 132
-            portrait_rect = pygame.Rect(inner_x, inner_y + 14, portrait_frame_size, portrait_frame_size)
+            portrait_frame_size = 168
+            portrait_rect = pygame.Rect(inner_x, inner_y + 16, portrait_frame_size, portrait_frame_size)
             pygame.draw.rect(surface, PANEL, portrait_rect, border_radius=10)
             pygame.draw.rect(surface, PANEL_EDGE, portrait_rect, width=2, border_radius=10)
 
@@ -159,15 +168,21 @@ class ExpertAssignmentScreen(Screen):
                 surface.blit(label_img, label_pos)
 
             info_x = portrait_rect.right + card_padding
-            info_y = inner_y + 8
+            info_y = portrait_rect.top
             draw_text(surface, "Expert", info_x, info_y, self.badge_font, MUTED); info_y += 18
-            draw_text(surface, f"{team.expert.name}", info_x, info_y, self.body_font, GOLD); info_y += 24
-            draw_text(surface, f"Specialty: {team.expert.specialty.title()}", info_x, info_y, self.stat_font, MUTED); info_y += 20
-            draw_text(surface, f"Style: {team.expert.signature_style}", info_x, info_y, self.stat_font, MUTED); info_y += 20
-            draw_text(surface, f"Years experience: {team.expert.profile.years_experience}", info_x, info_y, self.stat_font, MUTED); info_y += 20
-            draw_text(surface, f"Negotiation boost: {team.expert.negotiation_bonus*100:.0f}%", info_x, info_y, self.stat_font, ACCENT); info_y += 20
+            draw_text(surface, f"{team.expert.name}", info_x, info_y, self.body_font, GOLD); info_y += 26
 
-            flavor_y = portrait_rect.bottom + card_padding // 2
+            stat_lines = [
+                (f"Specialty: {team.expert.specialty.title()}", MUTED),
+                (f"Style: {team.expert.signature_style}", MUTED),
+                (f"Years experience: {team.expert.profile.years_experience}", MUTED),
+                (f"Negotiation boost: {team.expert.negotiation_bonus*100:.0f}%", ACCENT),
+            ]
+            for line, color in stat_lines:
+                draw_text(surface, line, info_x, info_y, self.stat_font, color)
+                info_y += 24
+
+            flavor_y = portrait_rect.bottom + card_padding
             draw_text(surface, "Lean on your expert for", inner_x, flavor_y, self.small, TEXT); flavor_y += 18
             draw_text(surface, "valuations and deal-making.", inner_x, flavor_y, self.small, TEXT)
 
