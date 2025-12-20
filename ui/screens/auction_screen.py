@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 import pygame
 from ui.screens.screen_base import Screen
@@ -42,6 +43,7 @@ class AuctionScreen(Screen):
         self.summary_result: AuctionRoundResult | None = None
         self.hold_final_done = False
         self.current_team = None
+        self.visual_rng: random.Random | None = None
 
         self.bidder_names = [
             "Gallery rep",
@@ -72,6 +74,7 @@ class AuctionScreen(Screen):
         self.summary_result = None
         self.hold_final_done = False
         self.current_team = None
+        self.visual_rng = None
 
     def _shade(self, color, amount):
         return tuple(max(0, min(255, c + amount)) for c in color)
@@ -86,6 +89,10 @@ class AuctionScreen(Screen):
 
         lot = self.episode.auction_queue[self.episode.auction_cursor]
         sale_price = self.episode.auction_house.sell(lot.item, self.episode.rng)
+
+        stage_code = 0 if self.episode.auction_stage == "team" else 1
+        visual_seed = self.episode.seed * 1_000_003 + stage_code * 10_000 + self.episode.auction_cursor
+        self.visual_rng = random.Random(visual_seed)
 
         start_price = max(5.0, min(lot.item.shop_price * 0.8, sale_price * 0.85))
         if start_price >= sale_price:
@@ -106,10 +113,11 @@ class AuctionScreen(Screen):
         self.bid_history.clear()
 
     def _build_bid_script(self, start_price: float, sale_price: float):
+        rng = self.visual_rng or random.Random()
         steps = []
         time_cursor = 0.7
-        bids = self.episode.rng.randint(3, 6)
-        chosen_bidders = [self.episode.rng.choice(self.bidder_names) for _ in range(bids)]
+        bids = rng.randint(3, 6)
+        chosen_bidders = [rng.choice(self.bidder_names) for _ in range(bids)]
 
         for idx in range(bids):
             bidder = chosen_bidders[idx]
@@ -117,7 +125,7 @@ class AuctionScreen(Screen):
             reach = start_price + (sale_price - start_price) * (0.55 + 0.45 * fraction)
             reach = min(sale_price, reach)
             steps.append({"time": time_cursor, "amount": reach, "bidder": bidder})
-            time_cursor += self.episode.rng.uniform(0.85, 1.15)
+            time_cursor += rng.uniform(0.85, 1.15)
 
         if steps:
             steps[-1]["amount"] = sale_price
