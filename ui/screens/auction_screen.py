@@ -348,10 +348,18 @@ class AuctionScreen(Screen):
         if not self.episode.last_sold:
             return
         lot = self.episode.last_sold
-        draw_text(surface, "Last hammer fall", x, y, self.small, GOLD); y += 18
+        panel_height = 86
+        panel_rect = pygame.Rect(x, y, w, panel_height)
+        draw_panel(surface, panel_rect)
+
+        text_x = panel_rect.x + 12
+        text_y = panel_rect.y + 10
+        draw_text(surface, "Last hammer fall", text_x, text_y, self.small, GOLD); text_y += 22
+
         profit = lot.item.auction_price - lot.item.shop_price
         col = GOOD if profit > 0 else BAD
-        draw_text(surface, f"{lot.item.name} sold for ${lot.item.auction_price:.0f} (Δ {profit:+.0f})", x, y, self.small, col)
+        draw_text(surface, f"{lot.item.name}", text_x, text_y, self.small, TEXT); text_y += 18
+        draw_text(surface, f"SOLD for ${lot.item.auction_price:.0f}  (Δ {profit:+.0f})", text_x, text_y, self.small, col)
 
     def render(self, surface):
         play_w = self.cfg.window_w - self.cfg.hud_w
