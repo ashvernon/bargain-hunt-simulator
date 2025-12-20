@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sim.balance_config import BalanceConfig
+
 
 class Auctioneer:
     """Provides auction-house valuations for items.
@@ -13,9 +15,13 @@ class Auctioneer:
         self.accuracy = accuracy
         self.bias = bias or {}
 
-    def appraise(self, item, rng) -> float:
+    def appraise(self, item, rng, cfg: BalanceConfig | None = None) -> float:
+        cfg = cfg or BalanceConfig()
+        auctioneer_cfg = cfg.auctioneer
+        accuracy = self.accuracy or auctioneer_cfg.default_accuracy
+
         # Higher accuracy means a tighter distribution around the true value.
-        noise_sigma = max(0.03, (1.0 - self.accuracy) * 0.55)
+        noise_sigma = max(auctioneer_cfg.sigma_floor, (1.0 - accuracy) * auctioneer_cfg.sigma_scale)
         est = item.true_value * rng.lognormal(0.0, noise_sigma)
-        est *= self.bias.get(item.category, 1.0)
+        est *= self.bias.get(item.category, auctioneer_cfg.bias_by_category.get(item.category, 1.0))
         return float(round(est, 2))
