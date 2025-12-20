@@ -4,7 +4,14 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from sim.economy_config import AUCTIONEER, AUCTION_HOUSE, GAVEL, NEGOTIATION, SHOP_PRICING
+from sim.economy_config import (
+    AUCTIONEER,
+    AUCTION_HOUSE,
+    GAVEL,
+    NEGOTIATION,
+    SHOP_PRICING,
+    TRUE_VALUE,
+)
 
 
 @dataclass
@@ -39,7 +46,7 @@ class AuctioneerConfig:
 
 @dataclass
 class TrueValueConfig:
-    fallback_sigma: float = 0.35
+    fallback_sigma: float = TRUE_VALUE["fallback_sigma"]
 
 
 @dataclass
@@ -50,19 +57,8 @@ class MoodTuning:
 
 @dataclass
 class AuctionHouseConfig:
-    categories: list[str] = field(
-        default_factory=lambda: [
-            "ceramics",
-            "clocks",
-            "tools",
-            "glassware",
-            "prints",
-            "toys",
-            "silverware",
-            "books",
-        ]
-    )
-    demand_range: tuple[float, float] = (AUCTION_HOUSE["demand_min"], AUCTION_HOUSE["demand_max"])
+    categories: list[str] = field(default_factory=lambda: list(AUCTION_HOUSE["categories"]))
+    demand_range: tuple[float, float] = tuple(AUCTION_HOUSE["demand_range"])
     mood_probs: dict[str, float] = field(default_factory=lambda: dict(AUCTION_HOUSE["mood_probs"]))
     moods: dict[str, MoodTuning] = field(
         default_factory=lambda: {
