@@ -72,7 +72,8 @@ class GameState:
                     return
             elif event.key == pygame.K_SPACE:
                 # Skip forward quickly
-                self._advance_phase(force=True)
+                if not (isinstance(self.screen, AuctionScreen) and getattr(self.screen, "flow_state", "") == "summary"):
+                    self._advance_phase(force=True)
             elif event.key == pygame.K_f:
                 self._toggle_speed()
         self.screen.handle_event(event)
