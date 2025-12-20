@@ -8,8 +8,12 @@ CATEGORIES = ["ceramics", "clocks", "tools", "glassware", "prints", "toys", "sil
 ERAS = ["victorian", "edwardian", "mid-century", "70s", "modern", "art-deco"]
 
 
-def _generate_fallback_item(rng, item_id: int) -> Item:
+from sim.balance_config import BalanceConfig
+
+
+def _generate_fallback_item(rng, item_id: int, cfg: BalanceConfig | None = None) -> Item:
     """Generate a synthetic item if the item database is empty."""
+    cfg = cfg or BalanceConfig()
     cat = rng.choice(CATEGORIES)
     era = rng.choice(ERAS)
 
@@ -19,7 +23,7 @@ def _generate_fallback_item(rng, item_id: int) -> Item:
 
     # "True value" is latent, slightly heavy-tailed to allow occasional gems
     base = 20 + 180 * (0.55 * rarity + 0.45 * style)
-    true_value = base * (0.55 + 0.75 * condition) * rng.lognormal(0.0, 0.35)
+    true_value = base * (0.55 + 0.75 * condition) * rng.lognormal(0.0, cfg.true_value.fallback_sigma)
     true_value = float(round(true_value, 2))
 
     return Item(
@@ -56,18 +60,18 @@ class ItemFactory:
             raise ValueError(f"Unknown item source '{source}'")
         return cls(db)
 
-    def make_item(self, rng, item_id: int) -> Item:
+    def make_item(self, rng, item_id: int, cfg: BalanceConfig | None = None) -> Item:
         if self.database.templates:
             return self.database.next_item(rng, item_id)
-        return _generate_fallback_item(rng, item_id)
+        return _generate_fallback_item(rng, item_id, cfg)
 
 
-def make_item(rng, item_id: int) -> Item:
+def make_item(rng, item_id: int, cfg: BalanceConfig | None = None) -> Item:
     """Convenience wrapper to avoid plumbing ItemFactory everywhere."""
     if not hasattr(make_item, "_factory"):
         make_item._factory = ItemFactory.with_default_db()
     factory: ItemFactory = make_item._factory
-    return factory.make_item(rng, item_id)
+    return factory.make_item(rng, item_id, cfg)
 
 
 def configure_item_factory(source: str):
