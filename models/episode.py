@@ -7,6 +7,7 @@ from constants import (
     TEAM_MEMBER_CATCHUP,
     TEAM_MEMBER_FORWARD,
     TEAM_MEMBER_SPREAD,
+    HOST_RADIUS,
 )
 from config import GameConfig
 from sim.rng import RNG
@@ -32,6 +33,15 @@ class AuctionLot:
     is_bonus: bool
 
 @dataclass
+class Host:
+    x: float
+    y: float
+    state: str = "OPENING"  # OPENING -> EXITING -> GONE
+    timer: float = 0.0
+    exit_target: tuple[float, float] | None = None
+    speed: float = 0.0
+
+@dataclass
 class Episode:
     ep_idx: int
     seed: int
@@ -41,6 +51,7 @@ class Episode:
     expert_min_budget: float = 1.0
     cfg: GameConfig | None = None
     time_scale: float = 1.0
+    host: Host | None = None
 
     def setup(self):
         self.cfg = self.cfg or GameConfig()
@@ -106,6 +117,8 @@ class Episode:
         for team in self.teams:
             team.ensure_member_positions()
             team.spend_plan = team.strategy.choose_spend_plan(self.rng)
+
+        self.host = self._init_host(cfg, team_slots)
 
         self.appraisal_done = False
         self.auction_done = False
@@ -198,6 +211,32 @@ class Episode:
 
             self._update_member_positions(team, dt, paced_speed)
 
+    def update_host(self, dt: float, cfg: GameConfig | None = None):
+        cfg = cfg or self.cfg or GameConfig()
+        if not self.host or self.host.state == "GONE":
+            return
+
+        if self.host.state == "OPENING":
+            self.host.timer -= dt
+            if self.host.timer <= 0:
+                self.host.state = "EXITING"
+            return
+
+        if self.host.state == "EXITING":
+            hx, hy = self.host.x, self.host.y
+            tx, ty = self.host.exit_target or (hx, hy)
+            dx, dy = tx - hx, ty - hy
+            dist = (dx * dx + dy * dy) ** 0.5
+            if dist <= max(1.0, HOST_RADIUS):
+                self.host.x, self.host.y = tx, ty
+                self.host.state = "GONE"
+                return
+
+            step = min(dist, cfg.host_walk_speed_px_s * dt)
+            nx = hx + dx / dist * step if dist else tx
+            ny = hy + dy / dist * step if dist else ty
+            self.host.x, self.host.y = nx, ny
+
     def _init_market_behavior(self, team: Team, cfg: GameConfig):
         team.ensure_member_positions()
         if not team.market_state:
@@ -205,6 +244,20 @@ class Episode:
         if not team.revisit_probability:
             jitter = self.rng.uniform(0.85, 1.15)
             team.revisit_probability = min(0.6, max(0.05, cfg.backtrack_probability * jitter))
+
+    def _init_host(self, cfg: GameConfig, team_slots: list[dict]) -> Host:
+        x0, y0, w, h = self.play_rect
+        avg_spawn_x = sum(slot["pos"][0] for slot in team_slots) / len(team_slots)
+        avg_spawn_y = sum(slot["pos"][1] for slot in team_slots) / len(team_slots)
+        exit_target = (x0 - cfg.host_exit_padding_px, avg_spawn_y)
+        return Host(
+            x=avg_spawn_x,
+            y=avg_spawn_y,
+            state="OPENING",
+            timer=cfg.host_exit_delay_seconds,
+            exit_target=exit_target,
+            speed=cfg.host_walk_speed_px_s,
+        )
 
     def _decay_stall_cooldowns(self, team: Team, dt: float):
         for sid in list(team.stall_cooldowns.keys()):
