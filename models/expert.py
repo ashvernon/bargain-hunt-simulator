@@ -19,6 +19,7 @@ class ExpertProfile:
     appraisal_accuracy: float
     negotiation_skill: float
     risk_appetite: float
+    image_path: str | None = None
     category_bias: Dict[str, float] = field(default_factory=dict)
     time_management: float = 0.5
     trust_factor: float = 0.55
@@ -37,6 +38,7 @@ class ExpertProfile:
             appraisal_accuracy=float(data.get("appraisal_accuracy", 0.75)),
             negotiation_skill=float(data.get("negotiation_skill", 0.5)),
             risk_appetite=float(data.get("risk_appetite", 0.5)),
+            image_path=data.get("image_path"),
             category_bias=dict(data.get("category_bias", {})),
             time_management=float(data.get("time_management", 0.5)),
             trust_factor=float(data.get("trust_factor", 0.55)),
@@ -54,6 +56,7 @@ class ExpertProfile:
             "appraisal_accuracy": self.appraisal_accuracy,
             "negotiation_skill": self.negotiation_skill,
             "risk_appetite": self.risk_appetite,
+            "image_path": self.image_path,
             "category_bias": self.category_bias,
             "time_management": self.time_management,
             "trust_factor": self.trust_factor,
@@ -69,6 +72,7 @@ class Expert:
         self.name = profile.full_name
         self.specialty = profile.specialty
         self.signature_style = profile.signature_style
+        self.image_path = profile.image_path
         self.appraisal_accuracy = _clamp01(profile.appraisal_accuracy)
         self.negotiation_skill = _clamp01(profile.negotiation_skill)
         self.risk_appetite = _clamp01(profile.risk_appetite)
