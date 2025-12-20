@@ -3,7 +3,14 @@ from ui.screens.screen_base import Screen
 from ui.render.hud import render_hud
 from ui.render.draw import draw_text
 from ui.render.stall_card import StallCardRenderer
-from constants import BG, GOOD
+from constants import (
+    BG,
+    GOOD,
+    TEAM_EXPERT_ACCENT,
+    TEAM_EXPERT_RADIUS,
+    TEAM_MARKER_OUTLINE,
+    TEAM_MEMBER_RADIUS,
+)
 
 class MarketScreen(Screen):
     def __init__(self, cfg, episode):
@@ -16,6 +23,17 @@ class MarketScreen(Screen):
 
     def set_time_left(self, t):
         self.time_left = t
+
+    def _draw_team_members(self, surface, team):
+        for member in team.members:
+            px, py = team.member_pos(member.key)
+            pos = (int(px), int(py))
+            is_expert = member.kind == "expert"
+            radius = TEAM_EXPERT_RADIUS if is_expert else TEAM_MEMBER_RADIUS
+            fill = TEAM_EXPERT_ACCENT if is_expert else team.color
+
+            pygame.draw.circle(surface, TEAM_MARKER_OUTLINE, pos, radius + 2)
+            pygame.draw.circle(surface, fill, pos, radius)
 
     def render(self, surface):
         # play area
@@ -41,7 +59,7 @@ class MarketScreen(Screen):
 
         # teams
         for team in self.episode.teams:
-            pygame.draw.circle(surface, team.color, (int(team.x), int(team.y)), 10)
+            self._draw_team_members(surface, team)
             draw_text(surface, team.duo_label(), int(team.x)+12, int(team.y)-10, self.small, team.color)
             if len(team.team_items) >= self.cfg.items_per_team:
                 draw_text(surface, "Done shopping", int(team.x)+12, int(team.y)+8, self.small, GOOD)

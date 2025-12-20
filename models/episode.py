@@ -1,6 +1,13 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from constants import TEAM_A, TEAM_B
+from constants import (
+    TEAM_A,
+    TEAM_B,
+    TEAM_EXPERT_LAG,
+    TEAM_MEMBER_CATCHUP,
+    TEAM_MEMBER_FORWARD,
+    TEAM_MEMBER_SPREAD,
+)
 from config import GameConfig
 from sim.rng import RNG
 from models.market import Market
@@ -97,6 +104,7 @@ class Episode:
         ]
 
         for team in self.teams:
+            team.ensure_member_positions()
             team.spend_plan = team.strategy.choose_spend_plan(self.rng)
 
         self.appraisal_done = False
@@ -132,14 +140,17 @@ class Episode:
             if not team.can_buy_more(self.items_per_team):
                 team.last_action = "Done shopping"
                 team.market_state = "DONE"
+                self._update_member_positions(team, dt, paced_speed)
                 continue
 
             if team.market_state == "CONSULTING_EXPERT":
                 self._tick_consulting(team, dt)
+                self._update_member_positions(team, dt, paced_speed)
                 continue
 
             if team.market_state == "CONSIDERING_ITEM":
                 self._tick_considering(team, dt, cfg)
+                self._update_member_positions(team, dt, paced_speed)
                 continue
 
             # choose target stall if none / empty
@@ -159,6 +170,7 @@ class Episode:
 
             if not target:
                 team.last_action = "No stalls left"
+                self._update_member_positions(team, dt, paced_speed)
                 continue
 
             tx, ty = target.center()
@@ -184,7 +196,10 @@ class Episode:
                     team.market_state = "BROWSING"
                     team.last_action = "Expert says: keep looking"
 
+            self._update_member_positions(team, dt, paced_speed)
+
     def _init_market_behavior(self, team: Team, cfg: GameConfig):
+        team.ensure_member_positions()
         if not team.market_state:
             team.market_state = "BROWSING"
         if not team.revisit_probability:
@@ -464,8 +479,59 @@ class Episode:
         if dist < 1e-6:
             return
         step = min(dist, speed * dt)
-        team.x += dx / dist * step
-        team.y += dy / dist * step
+        heading = (dx / dist, dy / dist)
+        team.heading = heading
+        team.x += heading[0] * step
+        team.y += heading[1] * step
+
+    def _update_member_positions(self, team: Team, dt: float, base_speed: float):
+        team.ensure_member_positions()
+        hx, hy = team.heading
+        norm = (hx * hx + hy * hy) ** 0.5
+        if norm < 1e-6:
+            hx, hy = 1.0, 0.0
+        else:
+            hx /= norm
+            hy /= norm
+        perp = (-hy, hx)
+        offsets = self._member_offsets(team, (hx, hy), perp)
+        member_speed = base_speed * TEAM_MEMBER_CATCHUP
+        for member in team.members:
+            cx, cy = team.member_pos(member.key)
+            target_x = team.x + offsets[member.key][0]
+            target_y = team.y + offsets[member.key][1]
+            mx, my = self._step_towards_point(cx, cy, target_x, target_y, dt, member_speed)
+            team.member_positions[member.key] = (mx, my)
+
+    def _member_offsets(self, team: Team, heading: tuple[float, float], perp: tuple[float, float]):
+        offsets: dict[str, tuple[float, float]] = {}
+        contestants = [m for m in team.members if m.kind == "contestant"]
+        lateral_start = -TEAM_MEMBER_SPREAD / 2
+        for idx, member in enumerate(contestants):
+            lateral = lateral_start + idx * TEAM_MEMBER_SPREAD
+            offsets[member.key] = (
+                perp[0] * lateral + heading[0] * TEAM_MEMBER_FORWARD,
+                perp[1] * lateral + heading[1] * TEAM_MEMBER_FORWARD,
+            )
+
+        expert_member = next((m for m in team.members if m.kind == "expert"), None)
+        if expert_member:
+            offsets[expert_member.key] = (
+                -heading[0] * TEAM_EXPERT_LAG,
+                -heading[1] * TEAM_EXPERT_LAG,
+            )
+
+        for member in team.members:
+            offsets.setdefault(member.key, (0.0, 0.0))
+        return offsets
+
+    def _step_towards_point(self, cx: float, cy: float, tx: float, ty: float, dt: float, speed: float):
+        dx, dy = tx - cx, ty - cy
+        dist = (dx * dx + dy * dy) ** 0.5
+        if dist < 1e-6:
+            return cx, cy
+        step = min(dist, speed * dt)
+        return cx + dx / dist * step, cy + dy / dist * step
 
     def reserve_expert_budget(self):
         """Lock in the leftover cash that must be handed to the expert."""
