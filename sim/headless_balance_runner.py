@@ -169,8 +169,9 @@ def _aggregate(episodes: list[EpisodeResult], *, cfg: BalanceConfig, seed: int, 
     negotiation_total: int = 0
     mood_counts: dict[str, int] = {}
 
+    gavel_threshold = cfg.gavel.profit_threshold
+
     for ep in episodes:
-        gavel_metrics.eligible += 1
         if ep.gavel_awarded:
             gavel_metrics.awards += 1
         mood_counts[ep.mood] = mood_counts.get(ep.mood, 0) + 1
@@ -178,6 +179,9 @@ def _aggregate(episodes: list[EpisodeResult], *, cfg: BalanceConfig, seed: int, 
         negotiation_success += ep.negotiation_successes
         negotiation_total += ep.negotiation_total
         for tr in ep.team_results:
+            best_profit = tr.best_lot.profit if tr.best_lot else float("-inf")
+            if best_profit >= gavel_threshold:
+                gavel_metrics.eligible += 1
             team_profits.append(tr.profit_total)
             for lot in tr.lots:
                 all_lot_profits.append(lot.profit)

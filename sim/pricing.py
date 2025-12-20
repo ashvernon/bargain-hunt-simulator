@@ -10,13 +10,11 @@ def _clamp(val: float, lo: float, hi: float) -> float:
 def clamp_appraisal(value: float, item, cfg: BalanceConfig) -> float:
     """Clamp appraisal estimates to avoid extreme over-valuations.
 
-    The cap is based on what was paid (or true value as a fallback) to prevent
-    runaway ratios from noisy draws.
+    The cap is based on the item's true value to prevent runaway ratios from
+    noisy draws while still scaling with expensive items.
     """
     cap = cfg.auctioneer.appraisal_ratio_cap
-    paid = getattr(item, "shop_price", 0.0) or 0.0
-    baseline = paid if paid > 0 else getattr(item, "true_value", 1.0)
-    baseline = max(baseline, 1.0)
+    baseline = max(getattr(item, "true_value", 1.0), 1.0)
     max_allowed = baseline * cap
     return _clamp(value, 1.0, max_allowed)
 
@@ -54,6 +52,7 @@ def negotiate(
     hi = max_disc if neg_cfg.discount_max is None else min(max_disc, neg_cfg.discount_max)
     lo = _clamp(lo, neg_cfg.discount_floor, neg_cfg.discount_ceiling)
     hi = _clamp(hi, neg_cfg.discount_floor, neg_cfg.discount_ceiling)
+    hi = max(hi, lo)
 
     if rng.random() < chance:
         disc = rng.uniform(lo, hi)
